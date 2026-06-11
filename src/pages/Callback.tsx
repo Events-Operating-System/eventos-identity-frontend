@@ -30,7 +30,15 @@ export default function Callback() {
         avatar_url: user.user_metadata?.avatar_url || null,
       })
       setStatus('success')
-      setTimeout(() => { window.location.href = '/dashboard' }, 1500)
+      setTimeout(() => {
+        const params = new URLSearchParams(window.location.search)
+        const redirect = params.get('redirect')
+        if (redirect) {
+          window.location.replace(redirect)
+        } else {
+          window.location.replace('/dashboard')
+        }
+      }, 1500)
     }
 
     handleCallback()
