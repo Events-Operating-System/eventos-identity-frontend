@@ -137,11 +137,14 @@ function LayoutsPlaceholder() {
       <div style={styles.emptyIcon}>🗺️</div>
       <h2 style={styles.emptyTitle}>Layouts</h2>
       <p style={styles.emptyText}>
-        Aquí verás todos los planos de tus eventos.<br />
-        El motor de layouts está en construcción.
+        El módulo de Layouts está disponible.<br />
+        Diseña y gestiona los planos de tus eventos.
       </p>
-      <button style={styles.ctaButton}>
-        + Crear primer layout
+      <button
+        style={styles.ctaButton}
+        onClick={() => { window.location.href = 'https://rn-layout-engine.vercel.app' }}
+      >
+        Ir a Layouts
       </button>
     </div>
   )
