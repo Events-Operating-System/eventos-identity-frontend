@@ -10,9 +10,9 @@ export default function Login() {
     setError(null)
 
     const redirectParam = new URLSearchParams(window.location.search).get('redirect')
-    const callbackUrl = `${window.location.origin}/callback${
-      redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''
-    }`
+    const callbackUrl = redirectParam
+      ? `${redirectParam}/callback`
+      : `${window.location.origin}/callback`
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
