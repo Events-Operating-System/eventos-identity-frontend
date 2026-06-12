@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
 const MODULES = [
-  { id: 'layouts',   label: 'Layouts',    icon: '🗺️',  status: 'active' },
-  { id: 'inventory', label: 'Inventory',  icon: '📦',  status: 'soon' },
+  { id: 'layouts',   label: 'Layouts',    icon: '🗺️',  status: 'active', url: 'https://rn-layout-engine.vercel.app' },
+  { id: 'inventory', label: 'Inventory',  icon: '📦',  status: 'active', url: 'https://eventos-inventarios.vercel.app' },
   { id: 'crm',       label: 'CRM',        icon: '🤝',  status: 'soon' },
 ]
 
@@ -57,7 +57,13 @@ export default function Dashboard() {
           {MODULES.map(mod => (
             <button
               key={mod.id}
-              onClick={() => mod.status === 'active' && setActiveModule(mod.id)}
+              onClick={() => {
+                if (mod.url) {
+                  window.location.href = mod.url
+                } else if (mod.status === 'active') {
+                  setActiveModule(mod.id)
+                }
+              }}
               style={{
                 ...styles.navItem,
                 ...(activeModule === mod.id ? styles.navItemActive : {}),
