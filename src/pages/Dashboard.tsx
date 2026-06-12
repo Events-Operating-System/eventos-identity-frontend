@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js'
 
 const MODULES = [
   { id: 'layouts',   label: 'Layouts',    icon: '🗺️',  status: 'active', url: 'https://rn-layout-engine.vercel.app' },
-  { id: 'inventory', label: 'Inventory',  icon: '📦',  status: 'active', url: 'https://eventos-inventarios.vercel.app' },
+  { id: 'inventory', label: 'Inventory',  icon: '📦',  status: 'active', url: 'https://eventos-inventarios.vercel.app', passToken: true },
   { id: 'crm',       label: 'CRM',        icon: '🤝',  status: 'soon' },
 ]
 
@@ -57,9 +57,18 @@ export default function Dashboard() {
           {MODULES.map(mod => (
             <button
               key={mod.id}
-              onClick={() => {
+              onClick={async () => {
                 if (mod.url) {
-                  window.location.href = mod.url
+                  if (mod.passToken) {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    if (session) {
+                      window.location.href = `${mod.url}/callback#access_token=${session.access_token}&refresh_token=${session.refresh_token}&token_type=bearer`
+                    } else {
+                      window.location.href = mod.url
+                    }
+                  } else {
+                    window.location.href = mod.url
+                  }
                 } else if (mod.status === 'active') {
                   setActiveModule(mod.id)
                 }
