@@ -123,7 +123,7 @@ export default function Dashboard() {
         </header>
 
         <div style={styles.content}>
-          {activeModule === 'layouts' && <LayoutsPlaceholder />}
+          {activeModule === 'layouts' && <LayoutsPlaceholder onBack={() => setActiveModule('')} />}
         </div>
       </main>
 
@@ -131,9 +131,12 @@ export default function Dashboard() {
   )
 }
 
-function LayoutsPlaceholder() {
+function LayoutsPlaceholder({ onBack }: { onBack: () => void }) {
   return (
     <div style={styles.emptyState}>
+      <button onClick={onBack} style={styles.backLink}>
+        ← Volver al dashboard
+      </button>
       <div style={styles.emptyIcon}>🗺️</div>
       <h2 style={styles.emptyTitle}>Layouts</h2>
       <p style={styles.emptyText}>
@@ -277,5 +280,15 @@ const styles: Record<string, React.CSSProperties> = {
   loadingScreen: {
     minHeight: '100vh', display: 'flex', alignItems: 'center',
     justifyContent: 'center', background: '#0f0f0f',
+  },
+  backLink: {
+    alignSelf: 'flex-start',
+    background: 'none',
+    border: 'none',
+    color: '#999',
+    fontSize: 13,
+    cursor: 'pointer',
+    padding: '0 0 24px',
+    fontWeight: 500,
   },
 }
