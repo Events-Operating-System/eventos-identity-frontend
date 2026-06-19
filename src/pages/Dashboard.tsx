@@ -135,10 +135,11 @@ export default function Dashboard() {
 
 function LayoutsPlaceholder({ onBack }: { onBack: () => void }) {
   return (
-    <div style={styles.emptyState}>
+    <div style={{ position: 'relative', height: '100%', minHeight: 400 }}>
       <button onClick={onBack} style={styles.backLink}>
         ← Volver al dashboard
       </button>
+      <div style={styles.emptyState}>
       <div style={styles.emptyIcon}>🗺️</div>
       <h2 style={styles.emptyTitle}>Layouts</h2>
       <p style={styles.emptyText}>
@@ -151,6 +152,7 @@ function LayoutsPlaceholder({ onBack }: { onBack: () => void }) {
       >
         Ir a Layouts
       </button>
+      </div>
     </div>
   )
 }
@@ -284,13 +286,15 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center', background: '#0f0f0f',
   },
   backLink: {
-    alignSelf: 'flex-start',
+    position: 'absolute',
+    top: 0,
+    left: 0,
     background: 'none',
     border: 'none',
     color: '#999',
     fontSize: 13,
     cursor: 'pointer',
-    padding: '0 0 24px',
+    padding: 0,
     fontWeight: 500,
   },
 }
