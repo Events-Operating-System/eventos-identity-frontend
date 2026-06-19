@@ -6,6 +6,7 @@ const MODULES = [
   { id: 'layouts',   label: 'Layouts',    icon: '🗺️',  status: 'active', url: 'https://rn-layout-engine.vercel.app' },
   { id: 'inventory', label: 'Inventory',  icon: '📦',  status: 'active', url: 'https://eventos-inventarios.vercel.app', passToken: true },
   { id: 'eventos',   label: 'Eventos',    icon: '📋',  status: 'active', url: 'https://eventos-eventos-frontend.vercel.app', passToken: true },
+  { id: 'ventas',    label: 'Ventas',     icon: '💰',  status: 'active', url: 'https://eventos-ventas-frontend.vercel.app', passToken: true },
   { id: 'crm',       label: 'CRM',        icon: '🤝',  status: 'soon' },
 ]
 
