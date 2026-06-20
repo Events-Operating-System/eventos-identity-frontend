@@ -16,4 +16,4 @@
 - Fix: link "← Volver al dashboard" movido a top-left
 
 **Próximo paso:**
-- Agregar módulo Ventas con página de detalle completa en dashboard
+- Ajustar página de detalle del módulo Ventas en dashboard
