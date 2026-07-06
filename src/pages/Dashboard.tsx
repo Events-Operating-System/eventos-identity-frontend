@@ -44,6 +44,13 @@ const MODULES: {
     id: 'agentes-ai', icon: '🤖', status: 'soon',
     labelKey: 'moduleAgentesAI', descKey: 'moduleAgentesAIDesc',
   },
+  // ⚠️ NO IMPLEMENTAR: este módulo requiere sesión de diseño dedicada.
+  // Auth model es distinto al resto (acceso externo por evento vía
+  // magic link, no Google OAuth por organización). Solo entrada visual "soon".
+  {
+    id: 'cliente', icon: '👥', status: 'soon',
+    labelKey: 'moduleCliente', descKey: 'moduleClienteDesc',
+  },
 ]
 
 async function goToModule(mod: (typeof MODULES)[number]) {

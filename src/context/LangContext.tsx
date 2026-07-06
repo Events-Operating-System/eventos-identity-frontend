@@ -27,6 +27,8 @@ const strings = {
     moduleAdministrativoDesc: 'Configuración y administración general de la cuenta.',
     moduleAgentesAI: 'Agentes AI',
     moduleAgentesAIDesc: 'Automatiza tareas operativas con agentes especializados por rol.',
+    moduleCliente: 'Portal Cliente',
+    moduleClienteDesc: 'Portal externo para que tus clientes vean el estado de su evento.',
     comingSoon: 'Próximamente',
   },
   en: {
@@ -53,6 +55,8 @@ const strings = {
     moduleAdministrativoDesc: 'General account settings and administration.',
     moduleAgentesAI: 'AI Agents',
     moduleAgentesAIDesc: 'Automate operational tasks with role-specialized agents.',
+    moduleCliente: 'Client Portal',
+    moduleClienteDesc: 'External portal for your clients to track their event status.',
     comingSoon: 'Coming soon',
   },
 } as const
