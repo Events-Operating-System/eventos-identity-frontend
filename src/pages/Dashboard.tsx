@@ -1,32 +1,36 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import { useLang, type Strings } from '../context/LangContext'
 
-const MODULES = [
+const MODULES: {
+  id: string; icon: string; status: string; url: string; passToken?: boolean
+  labelKey: keyof Strings; descKey: keyof Strings
+}[] = [
   {
-    id: 'ventas', label: 'Ventas', icon: '💰', status: 'active',
+    id: 'ventas', icon: '💰', status: 'active',
     url: 'https://eventos-ventas-frontend.vercel.app', passToken: true,
-    description: 'Gestiona clientes, cotizaciones y oportunidades de venta.',
+    labelKey: 'moduleVentas', descKey: 'moduleVentasDesc',
   },
   {
-    id: 'eventos', label: 'Eventos', icon: '📋', status: 'active',
+    id: 'eventos', icon: '📋', status: 'active',
     url: 'https://eventos-eventos-frontend.vercel.app', passToken: true,
-    description: 'Planifica y administra tus eventos de principio a fin.',
+    labelKey: 'moduleEventos', descKey: 'moduleEventosDesc',
   },
   {
-    id: 'layouts', label: 'Layouts', icon: '🗺️', status: 'active',
+    id: 'layouts', icon: '🗺️', status: 'active',
     url: 'https://rn-layout-engine.vercel.app',
-    description: 'Diseña y gestiona los planos de tus eventos.',
+    labelKey: 'moduleLayouts', descKey: 'moduleLayoutsDesc',
   },
   {
-    id: 'inventory', label: 'Inventario', icon: '📦', status: 'active',
+    id: 'inventory', icon: '📦', status: 'active',
     url: 'https://eventos-inventarios.vercel.app', passToken: true,
-    description: 'Controla el inventario de mobiliario y equipos.',
+    labelKey: 'moduleInventario', descKey: 'moduleInventarioDesc',
   },
   {
-    id: 'fieldops', label: 'FieldOps', icon: '📱', status: 'active',
+    id: 'fieldops', icon: '📱', status: 'active',
     url: 'https://eventos-fieldops-frontend.vercel.app', passToken: true,
-    description: 'Coordina al equipo en sitio durante el evento.',
+    labelKey: 'moduleFieldOps', descKey: 'moduleFieldOpsDesc',
   },
 ]
 
@@ -43,6 +47,7 @@ async function goToModule(mod: (typeof MODULES)[number]) {
 }
 
 export default function Dashboard() {
+  const { lang, setLang, t } = useLang()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -65,7 +70,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div style={styles.loadingScreen}>
-        <p style={{ color: '#fff', fontSize: 16 }}>Cargando...</p>
+        <p style={{ color: '#fff', fontSize: 16 }}>{t.loading}</p>
       </div>
     )
   }
@@ -86,7 +91,7 @@ export default function Dashboard() {
         </div>
 
         <nav style={styles.nav}>
-          <p style={styles.navLabel}>Módulos</p>
+          <p style={styles.navLabel}>{t.navLabel}</p>
           {MODULES.map(mod => (
             <button
               key={mod.id}
@@ -94,7 +99,7 @@ export default function Dashboard() {
               style={styles.navItem}
             >
               <span style={styles.navIcon}>{mod.icon}</span>
-              <span style={styles.navText}>{mod.label}</span>
+              <span style={styles.navText}>{t[mod.labelKey]}</span>
             </button>
           ))}
         </nav>
@@ -109,7 +114,7 @@ export default function Dashboard() {
             <p style={styles.userName}>{name.split(' ')[0]}</p>
             <p style={styles.userEmail}>{email}</p>
           </div>
-          <button onClick={handleLogout} style={styles.logoutBtn} title="Cerrar sesión">
+          <button onClick={handleLogout} style={styles.logoutBtn} title={t.logout}>
             ↩
           </button>
         </div>
@@ -119,9 +124,16 @@ export default function Dashboard() {
       <main style={styles.main}>
         <header style={styles.topbar}>
           <div>
-            <h1 style={styles.pageTitle}>Inicio</h1>
+            <h1 style={styles.pageTitle}>{t.pageTitleHome}</h1>
           </div>
           <div style={styles.userChip}>
+            <button
+              onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
+              style={styles.langToggle}
+              title={lang === 'es' ? 'Switch to English' : 'Cambiar a Español'}
+            >
+              {lang === 'es' ? 'EN' : 'ES'}
+            </button>
             {avatar
               ? <img src={avatar} alt="avatar" style={styles.chipAvatar} />
               : <div style={{ ...styles.chipAvatar, ...styles.chipInitials }}>{initials}</div>
@@ -131,7 +143,7 @@ export default function Dashboard() {
         </header>
 
         <div style={styles.content}>
-          <ModuleGallery />
+          <ModuleGallery t={t} />
         </div>
       </main>
 
@@ -139,19 +151,19 @@ export default function Dashboard() {
   )
 }
 
-function ModuleGallery() {
+function ModuleGallery({ t }: { t: Strings }) {
   return (
     <div>
-      <h2 style={styles.galleryTitle}>Tus módulos</h2>
-      <p style={styles.gallerySubtitle}>Elige un módulo para empezar a trabajar.</p>
+      <h2 style={styles.galleryTitle}>{t.galleryTitle}</h2>
+      <p style={styles.gallerySubtitle}>{t.gallerySubtitle}</p>
       <div style={styles.galleryGrid}>
         {MODULES.map(mod => (
           <div key={mod.id} style={styles.moduleCard}>
             <div style={styles.moduleIcon}>{mod.icon}</div>
-            <h3 style={styles.moduleName}>{mod.label}</h3>
-            <p style={styles.moduleDescription}>{mod.description}</p>
+            <h3 style={styles.moduleName}>{t[mod.labelKey]}</h3>
+            <p style={styles.moduleDescription}>{t[mod.descKey]}</p>
             <button style={styles.moduleButton} onClick={() => goToModule(mod)}>
-              Entrar →
+              {t.enterModule} →
             </button>
           </div>
         ))}
@@ -265,6 +277,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12, fontWeight: 700,
   },
   chipName: { fontSize: 14, fontWeight: 600, color: COLORS.negro },
+  langToggle: {
+    fontSize: 12, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1,
+    color: COLORS.azul, background: COLORS.azulClaro, border: `1px solid ${COLORS.azulBorde}`,
+    borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+  },
 
   content: { flex: 1, overflowY: 'auto', padding: 32 },
 
