@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js'
 import { useLang, type Strings } from '../context/LangContext'
 
 const MODULES: {
-  id: string; icon: string; status: string; url: string; passToken?: boolean
+  id: string; icon: string; status: string; url?: string; passToken?: boolean
   labelKey: keyof Strings; descKey: keyof Strings
 }[] = [
   {
@@ -31,6 +31,14 @@ const MODULES: {
     id: 'fieldops', icon: '📱', status: 'active',
     url: 'https://eventos-fieldops-frontend.vercel.app', passToken: true,
     labelKey: 'moduleFieldOps', descKey: 'moduleFieldOpsDesc',
+  },
+  {
+    id: 'financiero', icon: '💵', status: 'soon',
+    labelKey: 'moduleFinanciero', descKey: 'moduleFinancieroDesc',
+  },
+  {
+    id: 'administrativo', icon: '⚙️', status: 'soon',
+    labelKey: 'moduleAdministrativo', descKey: 'moduleAdministrativoDesc',
   },
 ]
 
@@ -96,10 +104,17 @@ export default function Dashboard() {
             <button
               key={mod.id}
               onClick={() => goToModule(mod)}
-              style={styles.navItem}
+              disabled={mod.status === 'soon'}
+              style={{
+                ...styles.navItem,
+                ...(mod.status === 'soon' ? styles.navItemDisabled : {}),
+              }}
             >
               <span style={styles.navIcon}>{mod.icon}</span>
               <span style={styles.navText}>{t[mod.labelKey]}</span>
+              {mod.status === 'soon' && (
+                <span style={styles.navBadge}>{t.comingSoon}</span>
+              )}
             </button>
           ))}
         </nav>
@@ -158,13 +173,23 @@ function ModuleGallery({ t }: { t: Strings }) {
       <p style={styles.gallerySubtitle}>{t.gallerySubtitle}</p>
       <div style={styles.galleryGrid}>
         {MODULES.map(mod => (
-          <div key={mod.id} style={styles.moduleCard}>
+          <div
+            key={mod.id}
+            style={{
+              ...styles.moduleCard,
+              ...(mod.status === 'soon' ? styles.moduleCardDisabled : {}),
+            }}
+          >
             <div style={styles.moduleIcon}>{mod.icon}</div>
             <h3 style={styles.moduleName}>{t[mod.labelKey]}</h3>
             <p style={styles.moduleDescription}>{t[mod.descKey]}</p>
-            <button style={styles.moduleButton} onClick={() => goToModule(mod)}>
-              {t.enterModule} →
-            </button>
+            {mod.status === 'soon'
+              ? <span style={styles.moduleSoonBadge}>{t.comingSoon}</span>
+              : (
+                <button style={styles.moduleButton} onClick={() => goToModule(mod)}>
+                  {t.enterModule} →
+                </button>
+              )}
           </div>
         ))}
       </div>
@@ -236,6 +261,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   navIcon: { fontSize: 16, minWidth: 20 },
   navText: { flex: 1 },
+  navItemDisabled: { opacity: 0.45, cursor: 'default' },
+  navBadge: {
+    fontSize: 9, color: COLORS.grisTexto, background: 'rgba(255,255,255,0.06)',
+    borderRadius: 4, padding: '2px 6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5,
+  },
 
   sidebarFooter: {
     display: 'flex',
@@ -315,6 +345,11 @@ const styles: Record<string, React.CSSProperties> = {
   moduleButton: {
     padding: '10px 18px', background: COLORS.azul, color: COLORS.blanco,
     border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+  },
+  moduleCardDisabled: { opacity: 0.6 },
+  moduleSoonBadge: {
+    fontSize: 12, fontWeight: 600, color: COLORS.grisTexto, background: COLORS.grisClaro,
+    border: `1px solid ${COLORS.azulBorde}`, borderRadius: 8, padding: '10px 18px',
   },
 
   loadingScreen: {

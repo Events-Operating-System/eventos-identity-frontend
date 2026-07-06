@@ -21,6 +21,11 @@ const strings = {
     moduleInventarioDesc: 'Controla el inventario de mobiliario y equipos.',
     moduleFieldOps: 'FieldOps',
     moduleFieldOpsDesc: 'Coordina al equipo en sitio durante el evento.',
+    moduleFinanciero: 'Financiero',
+    moduleFinancieroDesc: 'Gestión financiera, facturación y reportes.',
+    moduleAdministrativo: 'Administrativo',
+    moduleAdministrativoDesc: 'Configuración y administración general de la cuenta.',
+    comingSoon: 'Próximamente',
   },
   en: {
     navLabel: 'Modules',
@@ -40,6 +45,11 @@ const strings = {
     moduleInventarioDesc: 'Track furniture and equipment inventory.',
     moduleFieldOps: 'FieldOps',
     moduleFieldOpsDesc: 'Coordinate the on-site team during the event.',
+    moduleFinanciero: 'Finance',
+    moduleFinancieroDesc: 'Financial management, billing and reports.',
+    moduleAdministrativo: 'Administration',
+    moduleAdministrativoDesc: 'General account settings and administration.',
+    comingSoon: 'Coming soon',
   },
 } as const
 
