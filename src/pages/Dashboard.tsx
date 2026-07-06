@@ -69,6 +69,7 @@ export default function Dashboard() {
   const { lang, setLang, t } = useLang()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -103,7 +104,10 @@ export default function Dashboard() {
     <div style={styles.shell}>
 
       {/* ── Sidebar ── */}
-      <aside style={styles.sidebar}>
+      <aside
+        style={styles.sidebar}
+        className={`eos-sidebar${mobileOpen ? ' eos-sidebar-open' : ''}`}
+      >
         <div style={styles.sidebarHeader}>
           <span style={styles.sidebarLogo}>⚡</span>
           <span style={styles.sidebarTitle}>EventOS</span>
@@ -146,10 +150,22 @@ export default function Dashboard() {
         </div>
       </aside>
 
+      {mobileOpen && (
+        <div className="eos-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+
       {/* ── Main ── */}
       <main style={styles.main}>
         <header style={styles.topbar}>
-          <div>
+          <div style={styles.topbarLeft}>
+            <button
+              className="eos-hamburger-btn"
+              style={styles.hamburgerBtn}
+              onClick={() => setMobileOpen(o => !o)}
+              aria-label="Toggle menu"
+            >
+              ☰
+            </button>
             <h1 style={styles.pageTitle}>{t.pageTitleHome}</h1>
           </div>
           <div style={styles.userChip}>
@@ -309,7 +325,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: COLORS.blanco,
     borderBottom: `1px solid ${COLORS.azulBorde}`,
   },
+  topbarLeft: { display: 'flex', alignItems: 'center', gap: 12 },
   pageTitle: { fontSize: 26, fontWeight: 700, color: COLORS.negro, margin: 0, letterSpacing: '-0.5px' },
+  hamburgerBtn: {
+    background: 'none', border: 'none', fontSize: 22, cursor: 'pointer',
+    color: COLORS.negro, padding: 4, lineHeight: 1,
+  },
   userChip: { display: 'flex', alignItems: 'center', gap: 8 },
   chipAvatar: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' },
   chipInitials: {
