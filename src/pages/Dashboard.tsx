@@ -40,6 +40,10 @@ const MODULES: {
     id: 'administrativo', icon: '⚙️', status: 'soon',
     labelKey: 'moduleAdministrativo', descKey: 'moduleAdministrativoDesc',
   },
+  {
+    id: 'agentes-ai', icon: '🤖', status: 'soon',
+    labelKey: 'moduleAgentesAI', descKey: 'moduleAgentesAIDesc',
+  },
 ]
 
 async function goToModule(mod: (typeof MODULES)[number]) {
@@ -260,7 +264,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'background 0.15s',
   },
   navIcon: { fontSize: 16, minWidth: 20 },
-  navText: { flex: 1 },
+  navText: { flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   navItemDisabled: { opacity: 0.45, cursor: 'default' },
   navBadge: {
     fontSize: 9, color: COLORS.grisTexto, background: 'rgba(255,255,255,0.06)',

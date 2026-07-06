@@ -25,6 +25,8 @@ const strings = {
     moduleFinancieroDesc: 'Gestión financiera, facturación y reportes.',
     moduleAdministrativo: 'Administrativo',
     moduleAdministrativoDesc: 'Configuración y administración general de la cuenta.',
+    moduleAgentesAI: 'Agentes AI',
+    moduleAgentesAIDesc: 'Automatiza tareas operativas con agentes especializados por rol.',
     comingSoon: 'Próximamente',
   },
   en: {
@@ -49,6 +51,8 @@ const strings = {
     moduleFinancieroDesc: 'Financial management, billing and reports.',
     moduleAdministrativo: 'Administration',
     moduleAdministrativoDesc: 'General account settings and administration.',
+    moduleAgentesAI: 'AI Agents',
+    moduleAgentesAIDesc: 'Automate operational tasks with role-specialized agents.',
     comingSoon: 'Coming soon',
   },
 } as const
