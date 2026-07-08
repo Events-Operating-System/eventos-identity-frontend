@@ -1,6 +1,24 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+// Builds the OAuth callback URL on the *target* app's own origin (each
+// EventOS module owns its own /callback landing page — sessions aren't
+// shared across these origins via localStorage, so the redirect must land
+// directly where the session needs to end up). `/callback` is inserted into
+// the pathname rather than string-concatenated onto the full URL, so an
+// existing query string (e.g. rn-layout-engine's `?event_id=`) is preserved
+// intact instead of being corrupted by a blindly appended suffix.
+function buildCallbackUrl(redirectParam: string | null): string {
+  if (!redirectParam) return `${window.location.origin}/callback`
+  try {
+    const target = new URL(redirectParam)
+    target.pathname = target.pathname.replace(/\/$/, '') + '/callback'
+    return target.toString()
+  } catch {
+    return `${window.location.origin}/callback`
+  }
+}
+
 export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -10,9 +28,7 @@ export default function Login() {
     setError(null)
 
     const redirectParam = new URLSearchParams(window.location.search).get('redirect')
-    const callbackUrl = redirectParam
-      ? `${redirectParam}/callback`
-      : `${window.location.origin}/callback`
+    const callbackUrl = buildCallbackUrl(redirectParam)
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
