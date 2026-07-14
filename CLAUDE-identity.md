@@ -26,7 +26,19 @@
 - Toggle de idioma ES/EN en el header del dashboard (`src/context/LangContext.tsx`), replicando el patrón de `rn-layout-engine`; default español, persiste en localStorage
 - Módulos "Próximamente" agregados (status: 'soon', sin URL): Financiero, Administrativo, Agentes AI — badge "Próximamente" en sidebar y galería en vez de botón activo
 - Todo verificado visualmente (Playwright headless) y confirmado en el bundle desplegado en producción
+- Módulo "Portal Cliente" agregado al final de la galería/sidebar como "Próximamente" (activado luego en sesión 2026-07-14, ver abajo)
+- Fix bug mobile: sidebar de MÓDULOS ya no queda fijo ocupando ~55% del ancho en viewports angostos. Ahora colapsa a menú hamburguesa (☰) oculto por defecto por debajo de 767px, con overlay + backdrop tap-to-dismiss, replicando el patrón ya validado en `rn-layout-engine` (clases `.eos-sidebar` / `.eos-hamburger-btn` / `.eos-backdrop` en `src/index.css`). Verificado con Playwright en viewport iPhone 14 (390×844): sin overflow horizontal, sin regresión en desktop
 
 **Próximo paso:**
 - Extender el catálogo de i18n al resto del dashboard (Login, Callback) si se necesita
 - Definir arquitectura de Agentes AI — por ahora es solo visión de roadmap, sin implementación funcional
+- Validar el fix de sidebar mobile en un iPhone real (pendiente, solo se probó en headless/devtools)
+
+### Sesión 2026-07-14
+**Completado:**
+- Módulo "Portal Cliente" activado: status 'soon' → 'active', url `https://eventos-portal-cliente-frontend.vercel.app`, mismo patrón que Ventas/Eventos/Layouts/Inventario/FieldOps
+- Se descarta la hipótesis previa de auth especial (magic link): el staff inicia sesión con Google directamente en Portal Cliente, sin passToken ni sesión compartida
+- Se removió el comentario de advertencia "NO IMPLEMENTAR" dejado en `Dashboard.tsx` (sesión 07-06), ya resuelto
+
+**Próximo paso:**
+- Ninguno pendiente sobre Portal Cliente por ahora
