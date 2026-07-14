@@ -44,11 +44,9 @@ const MODULES: {
     id: 'agentes-ai', icon: '🤖', status: 'soon',
     labelKey: 'moduleAgentesAI', descKey: 'moduleAgentesAIDesc',
   },
-  // ⚠️ NO IMPLEMENTAR: este módulo requiere sesión de diseño dedicada.
-  // Auth model es distinto al resto (acceso externo por evento vía
-  // magic link, no Google OAuth por organización). Solo entrada visual "soon".
   {
-    id: 'cliente', icon: '👥', status: 'soon',
+    id: 'cliente', icon: '👥', status: 'active',
+    url: 'https://eventos-portal-cliente-frontend.vercel.app',
     labelKey: 'moduleCliente', descKey: 'moduleClienteDesc',
   },
 ]
