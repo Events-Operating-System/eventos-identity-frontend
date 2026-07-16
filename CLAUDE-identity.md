@@ -42,3 +42,11 @@
 
 **Próximo paso:**
 - Ninguno pendiente sobre Portal Cliente por ahora
+
+### Sesión 2026-07-15
+**Completado:**
+- Módulo "Administrativo" activado: status 'soon' → 'active', url `https://eventos-administracion-frontend.vercel.app`, mismo patrón que Portal Cliente (sin passToken)
+- Ícono, título y descripción sin cambios
+
+**Próximo paso:**
+- Quedan "Próximamente" solo Financiero y Agentes AI
