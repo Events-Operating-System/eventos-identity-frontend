@@ -37,7 +37,8 @@ const MODULES: {
     labelKey: 'moduleFinanciero', descKey: 'moduleFinancieroDesc',
   },
   {
-    id: 'administrativo', icon: '⚙️', status: 'soon',
+    id: 'administrativo', icon: '⚙️', status: 'active',
+    url: 'https://eventos-administracion-frontend.vercel.app',
     labelKey: 'moduleAdministrativo', descKey: 'moduleAdministrativoDesc',
   },
   {
