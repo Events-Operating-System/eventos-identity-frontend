@@ -33,7 +33,8 @@ const MODULES: {
     labelKey: 'moduleFieldOps', descKey: 'moduleFieldOpsDesc',
   },
   {
-    id: 'financiero', icon: '💵', status: 'soon',
+    id: 'financiero', icon: '💵', status: 'active',
+    url: 'https://eventos-financiero-frontend.vercel.app',
     labelKey: 'moduleFinanciero', descKey: 'moduleFinancieroDesc',
   },
   {
