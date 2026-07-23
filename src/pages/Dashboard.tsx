@@ -43,7 +43,8 @@ const MODULES: {
     labelKey: 'moduleAdministrativo', descKey: 'moduleAdministrativoDesc',
   },
   {
-    id: 'agentes-ai', icon: '🤖', status: 'soon',
+    id: 'agentes-ai', icon: '🤖', status: 'active',
+    url: 'https://eventos-agentes-frontend.vercel.app', passToken: true,
     labelKey: 'moduleAgentesAI', descKey: 'moduleAgentesAIDesc',
   },
   {
