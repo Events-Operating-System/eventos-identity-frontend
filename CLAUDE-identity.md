@@ -50,3 +50,14 @@
 
 **Próximo paso:**
 - Quedan "Próximamente" solo Financiero y Agentes AI
+
+### Sesión 2026-07-27
+**Completado:**
+- Auditoría de multi-tenancy: confirmado que Identity no expone status de organización ni pertenencia — no hay tabla `organizations`/`organization_members` consultada acá, no hay backend/API propio, solo wrapper de Google OAuth + passToken del JWT crudo a los módulos
+- Confirmado que el dato (`organizations.approval_status`: pending/active/rejected/suspended, `organization_members.is_active`) vive en el Supabase compartido, con schema dueño en `eventos-administracion-frontend` (`supabase/migrations/`, `create-organization` Edge Function)
+- Confirmado que los 9 módulos NO consumen nada de Identity para esto: cada uno (FieldOps, Ventas, Eventos, Inventario ×2, Layouts, Portal Cliente) implementa su propia query directa a `organization_members.is_active`, sin chequear `approval_status`. Administración y Financiero sí chequean `approval_status` con lógica duplicada entre sí, pero el guard no cubre todas las rutas (ni bloquea uso real)
+- No se modificó código: se decidió no implementar el fix todavía (ver "Próximo paso")
+
+**Próximo paso:**
+- Decidir estrategia para exponer el status de forma centralizada: (a) gate local en Identity antes de entrar a cada módulo, o (b) JWT custom claim vía Supabase Auth Hook (requiere acceso al dashboard/CLI del proyecto Supabase, no linkeado desde ningún repo local)
+- Sea cual sea la estrategia, hay que corregir módulo por módulo igual: no hay forma de que un fix en Identity propague solo
