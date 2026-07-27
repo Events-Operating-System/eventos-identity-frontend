@@ -56,8 +56,10 @@
 - Auditoría de multi-tenancy: confirmado que Identity no expone status de organización ni pertenencia — no hay tabla `organizations`/`organization_members` consultada acá, no hay backend/API propio, solo wrapper de Google OAuth + passToken del JWT crudo a los módulos
 - Confirmado que el dato (`organizations.approval_status`: pending/active/rejected/suspended, `organization_members.is_active`) vive en el Supabase compartido, con schema dueño en `eventos-administracion-frontend` (`supabase/migrations/`, `create-organization` Edge Function)
 - Confirmado que los 9 módulos NO consumen nada de Identity para esto: cada uno (FieldOps, Ventas, Eventos, Inventario ×2, Layouts, Portal Cliente) implementa su propia query directa a `organization_members.is_active`, sin chequear `approval_status`. Administración y Financiero sí chequean `approval_status` con lógica duplicada entre sí, pero el guard no cubre todas las rutas (ni bloquea uso real)
-- No se modificó código: se decidió no implementar el fix todavía (ver "Próximo paso")
+- Corrección durante esta misma sesión: al hacer `git fetch` antes del push apareció el commit `0814f92` ("Mark CTO", 2026-07-23) que activó Agentes AI (`status: soon → active`, url `eventos-agentes-frontend.vercel.app`, `passToken: true`) — no estaba en el local al momento de auditar. Esto invalida la conclusión de que "Agentes AI no existe todavía": el módulo está deployado y accesible, pero no hay clon local de `eventos-agentes-frontend` para confirmar si tiene o no su propio chequeo de `approval_status`. Queda pendiente auditarlo.
+- No se modificó código funcional: se decidió no implementar el fix todavía (ver "Próximo paso")
 
 **Próximo paso:**
+- Auditar `eventos-agentes-frontend` (clonar/revisar repo) para confirmar si chequea `organization_members`/`approval_status` o deja pasar sin ningún gate, igual que se hizo con los otros 9
 - Decidir estrategia para exponer el status de forma centralizada: (a) gate local en Identity antes de entrar a cada módulo, o (b) JWT custom claim vía Supabase Auth Hook (requiere acceso al dashboard/CLI del proyecto Supabase, no linkeado desde ningún repo local)
 - Sea cual sea la estrategia, hay que corregir módulo por módulo igual: no hay forma de que un fix en Identity propague solo
