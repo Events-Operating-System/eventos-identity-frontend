@@ -22,6 +22,9 @@ function buildCallbackUrl(redirectParam: string | null): string {
 export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   async function handleGoogleLogin() {
     setLoading(true)
@@ -42,6 +45,30 @@ export default function Login() {
       setLoading(false)
     }
     // Si no hay error, Supabase redirige a Google automáticamente
+  }
+
+  // Vía de login por password, aparte del botón de Google — pensada para
+  // cuentas de servicio (p.ej. Bailey, agente AI) creadas con email+password
+  // nativo en vez de Google OAuth. No reemplaza ni toca el flujo de Google:
+  // el resto del equipo (@realitynear.org vía Google) sigue exactamente
+  // igual. signInWithPassword resuelve la sesión sincrónicamente, sin pasar
+  // por /callback (esa página solo procesa el hash que devuelve el
+  // redirect de OAuth).
+  async function handlePasswordLogin(event: React.FormEvent) {
+    event.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+
+    const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+    window.location.replace(redirectParam || '/dashboard')
   }
 
   return (
@@ -75,6 +102,44 @@ export default function Login() {
           )}
         </button>
 
+        {!showPasswordForm ? (
+          <button
+            type="button"
+            onClick={() => { setShowPasswordForm(true); setError(null) }}
+            style={styles.linkButton}
+          >
+            Iniciar sesión con contraseña (cuentas de servicio)
+          </button>
+        ) : (
+          <form onSubmit={handlePasswordLogin} style={styles.passwordForm}>
+            <input
+              type="email"
+              required
+              autoComplete="username"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={styles.input}
+            />
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={styles.input}
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ ...styles.button, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+            >
+              {loading ? 'Ingresando...' : 'Ingresar con contraseña'}
+            </button>
+          </form>
+        )}
+
         {error && <p style={styles.error}>{error}</p>}
 
         <p style={styles.footer}>Reality Near · EventOS Platform</p>
@@ -104,6 +169,28 @@ const styles: Record<string, React.CSSProperties> = {
   logo: {
     fontSize: 48,
     marginBottom: 16,
+  },
+  linkButton: {
+    marginTop: 16,
+    background: 'none',
+    border: 'none',
+    color: '#4A90D9',
+    fontSize: 13,
+    cursor: 'pointer',
+    textDecoration: 'underline',
+  },
+  passwordForm: {
+    marginTop: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  input: {
+    padding: '12px 14px',
+    borderRadius: 10,
+    border: '2px solid #e0e0e0',
+    fontSize: 14,
+    outline: 'none',
   },
   title: {
     fontSize: 28,
