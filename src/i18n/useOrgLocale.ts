@@ -22,7 +22,11 @@ export function useOrgLocale(userId: string | undefined) {
     setLocaleState(next)
     i18n.changeLanguage(next)
     if (userId) {
-      await supabase.from('organization_members').update({ locale: next }).eq('user_id', userId)
+      await supabase
+        .from('organization_members')
+        .update({ locale: next })
+        .eq('user_id', userId)
+        .eq('is_active', true)
     }
   }
 

@@ -13,22 +13,32 @@ export function detectBrowserLocale(): AppLocale {
 
 // Cascada: locale personal (organization_members.locale) → locale de la
 // organización (organizations.locale) → detección de navegador → 'es'.
-// Un usuario pertenece a una sola organización (create-organization la
-// rechaza si ya existe una fila en organization_members para ese
-// user_id), así que no hay ambigüedad de "cuál org" acá.
+//
+// Un usuario puede tener legítimamente más de una fila activa en
+// organization_members (ver eventos-administracion-frontend@c4b58da:
+// alguien ayudando a revisar una org nueva sin dejar la real) — por eso
+// NO se usa .maybeSingle() (con 2+ filas devuelve PGRST116, tratado como
+// "sin org", el mismo bug ya encontrado y corregido en ese otro repo).
+// Identity no tiene selector de "organización activa" (fuera de alcance
+// acá), así que ante multi-org se toma la membresía activa más antigua
+// (joined_at) de forma determinística.
 export async function resolveMemberLocale(
   userId: string
 ): Promise<{ locale: AppLocale; orgId: string | null }> {
-  const { data: member } = await supabase
+  const { data: members } = await supabase
     .from('organization_members')
     .select('org_id, locale, organizations(locale)')
     .eq('user_id', userId)
-    .maybeSingle<{
+    .eq('is_active', true)
+    .order('joined_at', { ascending: true })
+    .limit(1)
+    .returns<{
       org_id: string
       locale: string | null
       organizations: { locale: string | null } | null
-    }>()
+    }[]>()
 
+  const member = members?.[0]
   if (!member) return { locale: detectBrowserLocale(), orgId: null }
 
   const personal = normalize(member.locale)
