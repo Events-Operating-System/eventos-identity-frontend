@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
-import { useLang, type Strings } from '../context/LangContext'
+import { useOrgLocale } from '../i18n/useOrgLocale'
+import type { AppLocale } from '../i18n/resolveLocale'
 
 const MODULES: {
   id: string; icon: string; status: string; url?: string; passToken?: boolean
-  labelKey: keyof Strings; descKey: keyof Strings
+  labelKey: string; descKey: string
 }[] = [
   {
     id: 'ventas', icon: '💰', status: 'active',
@@ -66,11 +68,18 @@ async function goToModule(mod: (typeof MODULES)[number]) {
   window.location.href = mod.url
 }
 
+const LANGUAGES: { code: AppLocale; label: string; autonym: string }[] = [
+  { code: 'es', label: 'ES', autonym: 'Español' },
+  { code: 'en', label: 'EN', autonym: 'English' },
+  { code: 'pt', label: 'PT', autonym: 'Português' },
+]
+
 export default function Dashboard() {
-  const { lang, setLang, t } = useLang()
+  const { t } = useTranslation()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { locale, setLocale } = useOrgLocale(user?.id)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -91,12 +100,12 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div style={styles.loadingScreen}>
-        <p style={{ color: '#fff', fontSize: 16 }}>{t.loading}</p>
+        <p style={{ color: '#fff', fontSize: 16 }}>{t('loading')}</p>
       </div>
     )
   }
 
-  const name = user?.user_metadata?.full_name || user?.email || 'Usuario'
+  const name = user?.user_metadata?.full_name || user?.email || t('userFallbackName')
   const email = user?.email || ''
   const avatar = user?.user_metadata?.avatar_url || null
   const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -111,11 +120,11 @@ export default function Dashboard() {
       >
         <div style={styles.sidebarHeader}>
           <span style={styles.sidebarLogo}>⚡</span>
-          <span style={styles.sidebarTitle}>EventOS</span>
+          <span style={styles.sidebarTitle}>{t('brandName')}</span>
         </div>
 
         <nav style={styles.nav}>
-          <p style={styles.navLabel}>{t.navLabel}</p>
+          <p style={styles.navLabel}>{t('navLabel')}</p>
           {MODULES.map(mod => (
             <button
               key={mod.id}
@@ -127,9 +136,9 @@ export default function Dashboard() {
               }}
             >
               <span style={styles.navIcon}>{mod.icon}</span>
-              <span style={styles.navText}>{t[mod.labelKey]}</span>
+              <span style={styles.navText}>{t(mod.labelKey)}</span>
               {mod.status === 'soon' && (
-                <span style={styles.navBadge}>{t.comingSoon}</span>
+                <span style={styles.navBadge}>{t('comingSoon')}</span>
               )}
             </button>
           ))}
@@ -138,14 +147,14 @@ export default function Dashboard() {
         {/* User footer */}
         <div style={styles.sidebarFooter}>
           {avatar
-            ? <img src={avatar} alt="avatar" style={styles.avatarSmall} />
+            ? <img src={avatar} alt={t('avatarAlt')} style={styles.avatarSmall} />
             : <div style={styles.avatarInitials}>{initials}</div>
           }
           <div style={styles.userInfo}>
             <p style={styles.userName}>{name.split(' ')[0]}</p>
             <p style={styles.userEmail}>{email}</p>
           </div>
-          <button onClick={handleLogout} style={styles.logoutBtn} title={t.logout}>
+          <button onClick={handleLogout} style={styles.logoutBtn} title={t('logout')}>
             ↩
           </button>
         </div>
@@ -157,35 +166,43 @@ export default function Dashboard() {
 
       {/* ── Main ── */}
       <main style={styles.main}>
-        <header style={styles.topbar}>
+        <header style={styles.topbar} className="eos-topbar">
           <div style={styles.topbarLeft}>
             <button
               className="eos-hamburger-btn"
               style={styles.hamburgerBtn}
               onClick={() => setMobileOpen(o => !o)}
-              aria-label="Toggle menu"
+              aria-label={t('toggleMenuAria')}
             >
               ☰
             </button>
-            <h1 style={styles.pageTitle}>{t.pageTitleHome}</h1>
+            <h1 style={styles.pageTitle}>{t('pageTitleHome')}</h1>
           </div>
           <div style={styles.userChip}>
-            <button
-              onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
-              style={styles.langToggle}
-              title={lang === 'es' ? 'Switch to English' : 'Cambiar a Español'}
-            >
-              {lang === 'es' ? 'EN' : 'ES'}
-            </button>
+            <div style={styles.langSegment} role="group" aria-label={t('switchLanguageAria')}>
+              {LANGUAGES.map(({ code, label, autonym }) => (
+                <button
+                  key={code}
+                  onClick={() => setLocale(code)}
+                  style={{
+                    ...styles.langSegmentBtn,
+                    ...(locale === code ? styles.langSegmentBtnActive : {}),
+                  }}
+                  title={autonym}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             {avatar
-              ? <img src={avatar} alt="avatar" style={styles.chipAvatar} />
+              ? <img src={avatar} alt={t('avatarAlt')} style={styles.chipAvatar} />
               : <div style={{ ...styles.chipAvatar, ...styles.chipInitials }}>{initials}</div>
             }
-            <span style={styles.chipName}>{name.split(' ')[0]}</span>
+            <span style={styles.chipName} className="eos-chip-name">{name.split(' ')[0]}</span>
           </div>
         </header>
 
-        <div style={styles.content}>
+        <div style={styles.content} className="eos-content">
           <ModuleGallery t={t} />
         </div>
       </main>
@@ -194,11 +211,11 @@ export default function Dashboard() {
   )
 }
 
-function ModuleGallery({ t }: { t: Strings }) {
+function ModuleGallery({ t }: { t: (key: string) => string }) {
   return (
     <div>
-      <h2 style={styles.galleryTitle}>{t.galleryTitle}</h2>
-      <p style={styles.gallerySubtitle}>{t.gallerySubtitle}</p>
+      <h2 style={styles.galleryTitle}>{t('galleryTitle')}</h2>
+      <p style={styles.gallerySubtitle}>{t('gallerySubtitle')}</p>
       <div style={styles.galleryGrid}>
         {MODULES.map(mod => (
           <div
@@ -209,13 +226,13 @@ function ModuleGallery({ t }: { t: Strings }) {
             }}
           >
             <div style={styles.moduleIcon}>{mod.icon}</div>
-            <h3 style={styles.moduleName}>{t[mod.labelKey]}</h3>
-            <p style={styles.moduleDescription}>{t[mod.descKey]}</p>
+            <h3 style={styles.moduleName}>{t(mod.labelKey)}</h3>
+            <p style={styles.moduleDescription}>{t(mod.descKey)}</p>
             {mod.status === 'soon'
-              ? <span style={styles.moduleSoonBadge}>{t.comingSoon}</span>
+              ? <span style={styles.moduleSoonBadge}>{t('comingSoon')}</span>
               : (
                 <button style={styles.moduleButton} onClick={() => goToModule(mod)}>
-                  {t.enterModule} →
+                  {t('enterModule')} →
                 </button>
               )}
           </div>
@@ -314,7 +331,7 @@ const styles: Record<string, React.CSSProperties> = {
   userEmail: { fontSize: 11, color: COLORS.grisTexto, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   logoutBtn: {
     background: 'none', border: 'none', color: COLORS.grisTexto,
-    fontSize: 18, cursor: 'pointer', padding: '4px',
+    fontSize: 18, cursor: 'pointer', padding: '9px',
     borderRadius: 6, flexShrink: 0,
   },
 
@@ -330,7 +347,7 @@ const styles: Record<string, React.CSSProperties> = {
   pageTitle: { fontSize: 26, fontWeight: 700, color: COLORS.negro, margin: 0, letterSpacing: '-0.5px' },
   hamburgerBtn: {
     background: 'none', border: 'none', fontSize: 22, cursor: 'pointer',
-    color: COLORS.negro, padding: 4, lineHeight: 1,
+    color: COLORS.negro, padding: 9, lineHeight: 1,
   },
   userChip: { display: 'flex', alignItems: 'center', gap: 8 },
   chipAvatar: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' },
@@ -340,10 +357,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12, fontWeight: 700,
   },
   chipName: { fontSize: 14, fontWeight: 600, color: COLORS.negro },
-  langToggle: {
+  langSegment: {
+    display: 'flex', border: `1px solid ${COLORS.azulBorde}`, borderRadius: 8,
+    overflow: 'hidden',
+  },
+  langSegmentBtn: {
     fontSize: 12, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1,
-    color: COLORS.azul, background: COLORS.azulClaro, border: `1px solid ${COLORS.azulBorde}`,
-    borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+    color: COLORS.azul, background: COLORS.azulClaro, border: 'none',
+    padding: '9px 10px', cursor: 'pointer', minWidth: 36,
+  },
+  langSegmentBtnActive: {
+    background: COLORS.azul, color: COLORS.blanco,
   },
 
   content: { flex: 1, overflowY: 'auto', padding: 32 },

@@ -36,4 +36,29 @@ body {
     background: rgba(0, 0, 0, 0.4);
     z-index: 20;
   }
+  .eos-topbar {
+    padding: 14px 16px !important;
+  }
+  .eos-content {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .eos-chip-name {
+    display: none;
+  }
+}
+
+/* Login/Callback — la card nunca toca el borde en pantallas angostas */
+.eos-auth-container {
+  padding: 24px;
+}
+.eos-auth-card {
+  padding: 48px 40px;
+}
+@media (max-width: 480px) {
+  .eos-auth-card {
+    padding: 32px 20px;
+  }
 }

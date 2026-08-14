@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import i18n from '../i18n/i18n'
+import { resolveMemberLocale } from '../i18n/resolveLocale'
 
 type UserProfile = {
   email: string
@@ -8,6 +11,7 @@ type UserProfile = {
 }
 
 export default function Callback() {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -18,7 +22,7 @@ export default function Callback() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
       if (sessionError || !session) {
-        setError(sessionError?.message || 'No se pudo establecer la sesión')
+        setError(sessionError?.message || t('sessionError'))
         setStatus('error')
         return
       }
@@ -29,6 +33,13 @@ export default function Callback() {
         full_name: user.user_metadata?.full_name || null,
         avatar_url: user.user_metadata?.avatar_url || null,
       })
+
+      // Resuelve el idioma (personal > org > navegador > 'es') antes de
+      // pasar a 'success', para que esa pantalla ya renderice en el
+      // idioma correcto en vez de arrancar en el 'es' inicial de i18next.
+      const { locale } = await resolveMemberLocale(user.id)
+      i18n.changeLanguage(locale)
+
       setStatus('success')
       setTimeout(() => {
         const params = new URLSearchParams(window.location.search)
@@ -51,10 +62,10 @@ export default function Callback() {
 
   if (status === 'loading') {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
+      <div style={styles.container} className="eos-auth-container">
+        <div style={styles.card} className="eos-auth-card">
           <div style={styles.spinner}>⟳</div>
-          <p style={styles.loadingText}>Verificando sesión...</p>
+          <p style={styles.loadingText}>{t('verifyingSession')}</p>
         </div>
       </div>
     )
@@ -62,48 +73,48 @@ export default function Callback() {
 
   if (status === 'error') {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
+      <div style={styles.container} className="eos-auth-container">
+        <div style={styles.card} className="eos-auth-card">
           <div style={{ fontSize: 48, marginBottom: 16 }}>❌</div>
-          <h2 style={styles.title}>Error de autenticación</h2>
+          <h2 style={styles.title}>{t('authErrorTitle')}</h2>
           <p style={styles.error}>{error}</p>
-          <a href="/" style={styles.link}>← Volver al login</a>
+          <a href="/" style={styles.link}>{t('backToLogin')}</a>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div style={styles.container} className="eos-auth-container">
+      <div style={styles.card} className="eos-auth-card">
         {profile?.avatar_url ? (
-          <img src={profile.avatar_url} alt="avatar" style={styles.avatar} />
+          <img src={profile.avatar_url} alt={t('avatarAlt')} style={styles.avatar} />
         ) : (
           <div style={styles.avatarPlaceholder}>👤</div>
         )}
 
-        <div style={styles.badge}>✅ Autenticado</div>
+        <div style={styles.badge}>{t('authenticatedBadge')}</div>
 
         <h2 style={styles.title}>
-          {profile?.full_name || 'Bienvenido'}
+          {profile?.full_name || t('welcomeFallback')}
         </h2>
         <p style={styles.email}>{profile?.email}</p>
 
         <div style={styles.infoBox}>
-          <p style={styles.infoLabel}>Google OAuth</p>
-          <p style={styles.infoValue}>Funcionando correctamente</p>
+          <p style={styles.infoLabel}>{t('googleOAuthLabel')}</p>
+          <p style={styles.infoValue}>{t('workingCorrectly')}</p>
         </div>
 
         <div style={styles.infoBox}>
-          <p style={styles.infoLabel}>Supabase Session</p>
-          <p style={styles.infoValue}>Activa</p>
+          <p style={styles.infoLabel}>{t('supabaseSessionLabel')}</p>
+          <p style={styles.infoValue}>{t('activeLabel')}</p>
         </div>
 
         <button onClick={handleLogout} style={styles.logoutButton}>
-          Cerrar sesión
+          {t('logout')}
         </button>
 
-        <p style={styles.footer}>Reality Near · EventOS Platform</p>
+        <p style={styles.footer}>{t('footerTagline')}</p>
       </div>
     </div>
   )
@@ -121,7 +132,6 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     background: '#ffffff',
     borderRadius: 16,
-    padding: '48px 40px',
     width: '100%',
     maxWidth: 400,
     textAlign: 'center',

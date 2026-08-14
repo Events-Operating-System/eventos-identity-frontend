@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import i18n from '../i18n/i18n'
+import { detectBrowserLocale } from '../i18n/resolveLocale'
 
 // Builds the OAuth callback URL on the *target* app's own origin (each
 // EventOS module owns its own /callback landing page — sessions aren't
@@ -20,11 +23,19 @@ function buildCallbackUrl(redirectParam: string | null): string {
 }
 
 export default function Login() {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // Pre-auth: todavía no hay user_id/org, así que el único idioma
+  // disponible es el detectado del navegador (ver eventos-identity
+  // Frente 1 — cascada personal > org > navegador > 'es').
+  useEffect(() => {
+    i18n.changeLanguage(detectBrowserLocale())
+  }, [])
 
   async function handleGoogleLogin() {
     setLoading(true)
@@ -72,11 +83,11 @@ export default function Login() {
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div style={styles.container} className="eos-auth-container">
+      <div style={styles.card} className="eos-auth-card">
         <div style={styles.logo}>⚡</div>
-        <h1 style={styles.title}>EventOS Identity</h1>
-        <p style={styles.subtitle}>Accede a tu cuenta para continuar</p>
+        <h1 style={styles.title}>{t('appTitle')}</h1>
+        <p style={styles.subtitle}>{t('loginSubtitle')}</p>
 
         <button
           onClick={handleGoogleLogin}
@@ -88,7 +99,7 @@ export default function Login() {
           }}
         >
           {loading ? (
-            'Redirigiendo...'
+            t('redirecting')
           ) : (
             <>
               <svg width="20" height="20" viewBox="0 0 24 24" style={{ marginRight: 10 }}>
@@ -97,7 +108,7 @@ export default function Login() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              Sign in with Google
+              {t('signInWithGoogle')}
             </>
           )}
         </button>
@@ -108,7 +119,7 @@ export default function Login() {
             onClick={() => { setShowPasswordForm(true); setError(null) }}
             style={styles.linkButton}
           >
-            Iniciar sesión con contraseña (cuentas de servicio)
+            {t('passwordLoginToggle')}
           </button>
         ) : (
           <form onSubmit={handlePasswordLogin} style={styles.passwordForm}>
@@ -116,7 +127,7 @@ export default function Login() {
               type="email"
               required
               autoComplete="username"
-              placeholder="Email"
+              placeholder={t('emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={styles.input}
@@ -125,7 +136,7 @@ export default function Login() {
               type="password"
               required
               autoComplete="current-password"
-              placeholder="Contraseña"
+              placeholder={t('passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={styles.input}
@@ -135,14 +146,14 @@ export default function Login() {
               disabled={loading}
               style={{ ...styles.button, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
             >
-              {loading ? 'Ingresando...' : 'Ingresar con contraseña'}
+              {loading ? t('passwordLoginLoading') : t('passwordLoginSubmit')}
             </button>
           </form>
         )}
 
         {error && <p style={styles.error}>{error}</p>}
 
-        <p style={styles.footer}>Reality Near · EventOS Platform</p>
+        <p style={styles.footer}>{t('footerTagline')}</p>
       </div>
     </div>
   )
@@ -160,7 +171,6 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     background: '#ffffff',
     borderRadius: 16,
-    padding: '48px 40px',
     width: '100%',
     maxWidth: 400,
     textAlign: 'center',
@@ -189,7 +199,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px 14px',
     borderRadius: 10,
     border: '2px solid #e0e0e0',
-    fontSize: 14,
+    fontSize: 16, // 14px dispara zoom automático en iOS Safari al enfocar
     outline: 'none',
   },
   title: {
