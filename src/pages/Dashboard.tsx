@@ -4,19 +4,21 @@ import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import { useOrgLocale } from '../i18n/useOrgLocale'
 import type { AppLocale } from '../i18n/resolveLocale'
+import { useActiveOrg } from '../hooks/useActiveOrg'
+import OrgSwitcher from '../components/OrgSwitcher'
 
 const MODULES: {
-  id: string; icon: string; status: string; url?: string; passToken?: boolean
+  id: string; icon: string; status: string; url?: string
   labelKey: string; descKey: string
 }[] = [
   {
     id: 'ventas', icon: '💰', status: 'active',
-    url: 'https://eventos-ventas-frontend.vercel.app', passToken: true,
+    url: 'https://eventos-ventas-frontend.vercel.app',
     labelKey: 'moduleVentas', descKey: 'moduleVentasDesc',
   },
   {
     id: 'eventos', icon: '📋', status: 'active',
-    url: 'https://eventos-eventos-frontend.vercel.app', passToken: true,
+    url: 'https://eventos-eventos-frontend.vercel.app',
     labelKey: 'moduleEventos', descKey: 'moduleEventosDesc',
   },
   {
@@ -26,12 +28,12 @@ const MODULES: {
   },
   {
     id: 'inventory', icon: '📦', status: 'active',
-    url: 'https://eventos-inventarios.vercel.app', passToken: true,
+    url: 'https://eventos-inventarios.vercel.app',
     labelKey: 'moduleInventario', descKey: 'moduleInventarioDesc',
   },
   {
     id: 'fieldops', icon: '📱', status: 'active',
-    url: 'https://eventos-fieldops-frontend.vercel.app', passToken: true,
+    url: 'https://eventos-fieldops-frontend.vercel.app',
     labelKey: 'moduleFieldOps', descKey: 'moduleFieldOpsDesc',
   },
   {
@@ -46,7 +48,7 @@ const MODULES: {
   },
   {
     id: 'agentes-ai', icon: '🤖', status: 'active',
-    url: 'https://eventos-agentes-frontend.vercel.app', passToken: true,
+    url: 'https://eventos-agentes-frontend.vercel.app',
     labelKey: 'moduleAgentesAI', descKey: 'moduleAgentesAIDesc',
   },
   {
@@ -56,12 +58,40 @@ const MODULES: {
   },
 ]
 
-async function goToModule(mod: (typeof MODULES)[number]) {
+// module_key canónico (public.modules.name) para cada módulo del Dashboard —
+// verificado carácter por carácter contra la base compartida, no asumido.
+// 'cliente' -> 'portal_cliente' es solo para la entrada de STAFF (org
+// activa con acceso al módulo); el login standalone de clientes externos
+// en ese mismo dominio no pasa por acá.
+const HANDOFF_MODULE_KEY: Record<string, string> = {
+  ventas: 'ventas',
+  eventos: 'eventos',
+  layouts: 'layout',
+  inventory: 'inventario',
+  fieldops: 'fieldops',
+  financiero: 'financiero',
+  administrativo: 'administrativo',
+  'agentes-ai': 'agentes_ai',
+  cliente: 'portal_cliente',
+}
+
+// Reemplaza pasar access_token/refresh_token crudos (compartían linaje de
+// refresh token con Identity y se rompían por la rotación de Supabase) por
+// un código de un solo uso emitido por create-module-handoff-code, atado a
+// (usuario, org activa, módulo). Si la emisión falla (org sin acceso al
+// módulo, red, etc.) cae al redirect sin sesión — el propio bounce-back del
+// módulo destino (?redirect= a Identity) lo re-autentica igual, más lento.
+async function goToModule(mod: (typeof MODULES)[number], activeOrgId: string | null) {
   if (!mod.url) return
-  if (mod.passToken) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      window.location.href = `${mod.url}/callback#access_token=${session.access_token}&refresh_token=${session.refresh_token}&token_type=bearer`
+
+  const moduleKey = HANDOFF_MODULE_KEY[mod.id]
+  if (moduleKey && activeOrgId) {
+    const { data, error } = await supabase.functions.invoke<{ code: string }>(
+      'create-module-handoff-code',
+      { body: { org_id: activeOrgId, module_key: moduleKey } },
+    )
+    if (!error && data?.code) {
+      window.location.href = `${mod.url}/callback#code=${data.code}`
       return
     }
   }
@@ -80,6 +110,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const { locale, setLocale } = useOrgLocale(user?.id)
+  const { memberships, activeOrgId, setActiveOrgId } = useActiveOrg(user?.id)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -123,12 +154,18 @@ export default function Dashboard() {
           <span style={styles.sidebarTitle}>{t('brandName')}</span>
         </div>
 
+        {memberships.length > 1 && (
+          <div style={styles.orgSwitcherWrap}>
+            <OrgSwitcher memberships={memberships} activeOrgId={activeOrgId} setActiveOrgId={setActiveOrgId} />
+          </div>
+        )}
+
         <nav style={styles.nav}>
           <p style={styles.navLabel}>{t('navLabel')}</p>
           {MODULES.map(mod => (
             <button
               key={mod.id}
-              onClick={() => goToModule(mod)}
+              onClick={() => goToModule(mod, activeOrgId)}
               disabled={mod.status === 'soon'}
               style={{
                 ...styles.navItem,
@@ -203,7 +240,7 @@ export default function Dashboard() {
         </header>
 
         <div style={styles.content} className="eos-content">
-          <ModuleGallery t={t} />
+          <ModuleGallery t={t} activeOrgId={activeOrgId} />
         </div>
       </main>
 
@@ -211,7 +248,7 @@ export default function Dashboard() {
   )
 }
 
-function ModuleGallery({ t }: { t: (key: string) => string }) {
+function ModuleGallery({ t, activeOrgId }: { t: (key: string) => string; activeOrgId: string | null }) {
   return (
     <div>
       <h2 style={styles.galleryTitle}>{t('galleryTitle')}</h2>
@@ -231,7 +268,7 @@ function ModuleGallery({ t }: { t: (key: string) => string }) {
             {mod.status === 'soon'
               ? <span style={styles.moduleSoonBadge}>{t('comingSoon')}</span>
               : (
-                <button style={styles.moduleButton} onClick={() => goToModule(mod)}>
+                <button style={styles.moduleButton} onClick={() => goToModule(mod, activeOrgId)}>
                   {t('enterModule')} →
                 </button>
               )}
@@ -284,6 +321,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sidebarLogo: { fontSize: 24 },
   sidebarTitle: { fontSize: 20, fontWeight: 700, color: COLORS.blanco, letterSpacing: '-0.5px' },
+
+  orgSwitcherWrap: { padding: '12px 12px 0' },
 
   nav: { flex: 1, padding: '16px 12px', overflowY: 'auto' },
   navLabel: { fontSize: 10, color: COLORS.grisTexto, textTransform: 'uppercase', letterSpacing: 1.5, margin: '0 8px 8px', fontWeight: 600 },
