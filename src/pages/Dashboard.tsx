@@ -5,6 +5,8 @@ import type { User } from '@supabase/supabase-js'
 import { useOrgLocale } from '../i18n/useOrgLocale'
 import type { AppLocale } from '../i18n/resolveLocale'
 import { useActiveOrg } from '../hooks/useActiveOrg'
+import { useModuleAccess } from '../hooks/useModuleAccess'
+import { HANDOFF_MODULE_KEY, goToModule } from '../lib/goToModule'
 import OrgSwitcher from '../components/OrgSwitcher'
 
 const MODULES: {
@@ -58,46 +60,6 @@ const MODULES: {
   },
 ]
 
-// module_key canónico (public.modules.name) para cada módulo del Dashboard —
-// verificado carácter por carácter contra la base compartida, no asumido.
-// 'cliente' -> 'portal_cliente' es solo para la entrada de STAFF (org
-// activa con acceso al módulo); el login standalone de clientes externos
-// en ese mismo dominio no pasa por acá.
-const HANDOFF_MODULE_KEY: Record<string, string> = {
-  ventas: 'ventas',
-  eventos: 'eventos',
-  layouts: 'layout',
-  inventory: 'inventario',
-  fieldops: 'fieldops',
-  financiero: 'financiero',
-  administrativo: 'administrativo',
-  'agentes-ai': 'agentes_ai',
-  cliente: 'portal_cliente',
-}
-
-// Reemplaza pasar access_token/refresh_token crudos (compartían linaje de
-// refresh token con Identity y se rompían por la rotación de Supabase) por
-// un código de un solo uso emitido por create-module-handoff-code, atado a
-// (usuario, org activa, módulo). Si la emisión falla (org sin acceso al
-// módulo, red, etc.) cae al redirect sin sesión — el propio bounce-back del
-// módulo destino (?redirect= a Identity) lo re-autentica igual, más lento.
-async function goToModule(mod: (typeof MODULES)[number], activeOrgId: string | null) {
-  if (!mod.url) return
-
-  const moduleKey = HANDOFF_MODULE_KEY[mod.id]
-  if (moduleKey && activeOrgId) {
-    const { data, error } = await supabase.functions.invoke<{ code: string }>(
-      'create-module-handoff-code',
-      { body: { org_id: activeOrgId, module_key: moduleKey } },
-    )
-    if (!error && data?.code) {
-      window.location.href = `${mod.url}/callback#code=${data.code}`
-      return
-    }
-  }
-  window.location.href = mod.url
-}
-
 const LANGUAGES: { code: AppLocale; label: string; autonym: string }[] = [
   { code: 'es', label: 'ES', autonym: 'Español' },
   { code: 'en', label: 'EN', autonym: 'English' },
@@ -111,6 +73,12 @@ export default function Dashboard() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { locale, setLocale } = useOrgLocale(user?.id)
   const { memberships, activeOrgId, setActiveOrgId } = useActiveOrg(user?.id)
+  // null mientras no hay org activa o el fetch está en curso: visibleModules
+  // queda vacío en ese lapso, nunca "todos los módulos" — ver useModuleAccess.ts.
+  const moduleKeys = useModuleAccess(activeOrgId)
+  const visibleModules = moduleKeys === null
+    ? []
+    : MODULES.filter(mod => moduleKeys.includes(HANDOFF_MODULE_KEY[mod.id]))
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -162,7 +130,7 @@ export default function Dashboard() {
 
         <nav style={styles.nav}>
           <p style={styles.navLabel}>{t('navLabel')}</p>
-          {MODULES.map(mod => (
+          {visibleModules.map(mod => (
             <button
               key={mod.id}
               onClick={() => goToModule(mod, activeOrgId)}
@@ -240,7 +208,7 @@ export default function Dashboard() {
         </header>
 
         <div style={styles.content} className="eos-content">
-          <ModuleGallery t={t} activeOrgId={activeOrgId} />
+          <ModuleGallery t={t} activeOrgId={activeOrgId} modules={visibleModules} />
         </div>
       </main>
 
@@ -248,13 +216,19 @@ export default function Dashboard() {
   )
 }
 
-function ModuleGallery({ t, activeOrgId }: { t: (key: string) => string; activeOrgId: string | null }) {
+function ModuleGallery({
+  t, activeOrgId, modules,
+}: {
+  t: (key: string) => string
+  activeOrgId: string | null
+  modules: typeof MODULES
+}) {
   return (
     <div>
       <h2 style={styles.galleryTitle}>{t('galleryTitle')}</h2>
       <p style={styles.gallerySubtitle}>{t('gallerySubtitle')}</p>
       <div style={styles.galleryGrid}>
-        {MODULES.map(mod => (
+        {modules.map(mod => (
           <div
             key={mod.id}
             style={{
