@@ -6,7 +6,8 @@ import { useOrgLocale } from '../i18n/useOrgLocale'
 import type { AppLocale } from '../i18n/resolveLocale'
 import { useActiveOrg } from '../hooks/useActiveOrg'
 import { useModuleAccess } from '../hooks/useModuleAccess'
-import { HANDOFF_MODULE_KEY, goToModule } from '../lib/goToModule'
+import { goToModule } from '../lib/goToModule'
+import { getVisibleModules } from '../lib/visibleModules'
 import OrgSwitcher from '../components/OrgSwitcher'
 
 const MODULES: {
@@ -66,6 +67,20 @@ const LANGUAGES: { code: AppLocale; label: string; autonym: string }[] = [
   { code: 'pt', label: 'PT', autonym: 'Português' },
 ]
 
+// Sin organización activa, goToModule() no tiene org_id para emitir un
+// handoff code — y no debería: no hay nada que "acceder" todavía. Este es
+// el único caso (Administración) donde corresponde navegar directo, sin
+// código, dejando que ese módulo resuelva el alta (mismo camino que entrar
+// a mano por la URL — ver NoOrganization.tsx / OrgStatusGuard.tsx en
+// eventos-administracion-frontend).
+function launchModule(mod: { url?: string }, activeOrgId: string | null) {
+  if (!activeOrgId) {
+    if (mod.url) window.location.href = mod.url
+    return
+  }
+  goToModule(mod, activeOrgId)
+}
+
 export default function Dashboard() {
   const { t } = useTranslation()
   const [user, setUser] = useState<User | null>(null)
@@ -74,11 +89,10 @@ export default function Dashboard() {
   const { locale, setLocale } = useOrgLocale(user?.id)
   const { memberships, activeOrgId, setActiveOrgId } = useActiveOrg(user?.id)
   // null mientras no hay org activa o el fetch está en curso: visibleModules
-  // queda vacío en ese lapso, nunca "todos los módulos" — ver useModuleAccess.ts.
+  // queda vacío en ese lapso, salvo Administración (única puerta de alta) —
+  // ver getVisibleModules() / useModuleAccess.ts.
   const moduleKeys = useModuleAccess(activeOrgId)
-  const visibleModules = moduleKeys === null
-    ? []
-    : MODULES.filter(mod => moduleKeys.includes(HANDOFF_MODULE_KEY[mod.id]))
+  const visibleModules = getVisibleModules(MODULES, moduleKeys, activeOrgId)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -133,7 +147,7 @@ export default function Dashboard() {
           {visibleModules.map(mod => (
             <button
               key={mod.id}
-              onClick={() => goToModule(mod, activeOrgId)}
+              onClick={() => launchModule(mod, activeOrgId)}
               disabled={mod.status === 'soon'}
               style={{
                 ...styles.navItem,
@@ -242,7 +256,7 @@ function ModuleGallery({
             {mod.status === 'soon'
               ? <span style={styles.moduleSoonBadge}>{t('comingSoon')}</span>
               : (
-                <button style={styles.moduleButton} onClick={() => goToModule(mod, activeOrgId)}>
+                <button style={styles.moduleButton} onClick={() => launchModule(mod, activeOrgId)}>
                   {t('enterModule')} →
                 </button>
               )}
