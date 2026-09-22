@@ -6,7 +6,7 @@ import { useOrgLocale } from '../i18n/useOrgLocale'
 import type { AppLocale } from '../i18n/resolveLocale'
 import { useActiveOrg } from '../hooks/useActiveOrg'
 import { useModuleAccess } from '../hooks/useModuleAccess'
-import { goToModule } from '../lib/goToModule'
+import { goToModule, type ModuleLike } from '../lib/goToModule'
 import { getVisibleModules } from '../lib/visibleModules'
 import OrgSwitcher from '../components/OrgSwitcher'
 
@@ -73,7 +73,7 @@ const LANGUAGES: { code: AppLocale; label: string; autonym: string }[] = [
 // código, dejando que ese módulo resuelva el alta (mismo camino que entrar
 // a mano por la URL — ver NoOrganization.tsx / OrgStatusGuard.tsx en
 // eventos-administracion-frontend).
-function launchModule(mod: { url?: string }, activeOrgId: string | null) {
+function launchModule(mod: ModuleLike, activeOrgId: string | null) {
   if (!activeOrgId) {
     if (mod.url) window.location.href = mod.url
     return
