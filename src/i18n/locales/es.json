@@ -53,5 +53,6 @@
   "moduleAgentesAIDesc": "Automatiza tareas operativas con agentes especializados por rol.",
   "moduleCliente": "Portal Cliente",
   "moduleClienteDesc": "Portal externo para que tus clientes vean el estado de su evento.",
-  "comingSoon": "Próximamente"
+  "comingSoon": "Próximamente",
+  "availableFromPlan": "Disponible desde {{plan}}"
 }

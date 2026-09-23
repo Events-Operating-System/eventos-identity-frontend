@@ -6,7 +6,8 @@ import { useOrgLocale } from '../i18n/useOrgLocale'
 import type { AppLocale } from '../i18n/resolveLocale'
 import { useActiveOrg } from '../hooks/useActiveOrg'
 import { useModuleAccess } from '../hooks/useModuleAccess'
-import { goToModule, type ModuleLike } from '../lib/goToModule'
+import { usePlanLockedModules } from '../hooks/usePlanLockedModules'
+import { goToModule, HANDOFF_MODULE_KEY, type ModuleLike } from '../lib/goToModule'
 import { getVisibleModules } from '../lib/visibleModules'
 import OrgSwitcher from '../components/OrgSwitcher'
 
@@ -92,7 +93,11 @@ export default function Dashboard() {
   // queda vacío en ese lapso, salvo Administración (única puerta de alta) —
   // ver getVisibleModules() / useModuleAccess.ts.
   const moduleKeys = useModuleAccess(activeOrgId)
-  const visibleModules = getVisibleModules(MODULES, moduleKeys, activeOrgId)
+  // Módulos que el rol permitiría pero el plan no incluye: se muestran
+  // bloqueados con "Disponible desde <plan>", sin botón de entrar.
+  const planLocked = usePlanLockedModules(activeOrgId)
+  const visibleModules = getVisibleModules(MODULES, moduleKeys, activeOrgId, [...planLocked.keys()])
+  const lockedPlanFor = (mod: { id: string }) => planLocked.get(HANDOFF_MODULE_KEY[mod.id]) ?? null
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -144,23 +149,31 @@ export default function Dashboard() {
 
         <nav style={styles.nav}>
           <p style={styles.navLabel}>{t('navLabel')}</p>
-          {visibleModules.map(mod => (
-            <button
-              key={mod.id}
-              onClick={() => launchModule(mod, activeOrgId)}
-              disabled={mod.status === 'soon'}
-              style={{
-                ...styles.navItem,
-                ...(mod.status === 'soon' ? styles.navItemDisabled : {}),
-              }}
-            >
-              <span style={styles.navIcon}>{mod.icon}</span>
-              <span style={styles.navText}>{t(mod.labelKey)}</span>
-              {mod.status === 'soon' && (
-                <span style={styles.navBadge}>{t('comingSoon')}</span>
-              )}
-            </button>
-          ))}
+          {visibleModules.map(mod => {
+            const lockedPlan = lockedPlanFor(mod)
+            const disabled = mod.status === 'soon' || lockedPlan !== null
+            return (
+              <button
+                key={mod.id}
+                onClick={() => launchModule(mod, activeOrgId)}
+                disabled={disabled}
+                title={lockedPlan ? t('availableFromPlan', { plan: lockedPlan }) : undefined}
+                style={{
+                  ...styles.navItem,
+                  ...(disabled ? styles.navItemDisabled : {}),
+                }}
+              >
+                <span style={styles.navIcon}>{mod.icon}</span>
+                <span style={styles.navText}>{t(mod.labelKey)}</span>
+                {mod.status === 'soon' && (
+                  <span style={styles.navBadge}>{t('comingSoon')}</span>
+                )}
+                {lockedPlan && (
+                  <span style={styles.navBadge}>🔒</span>
+                )}
+              </button>
+            )
+          })}
         </nav>
 
         {/* User footer */}
@@ -222,7 +235,7 @@ export default function Dashboard() {
         </header>
 
         <div style={styles.content} className="eos-content">
-          <ModuleGallery t={t} activeOrgId={activeOrgId} modules={visibleModules} />
+          <ModuleGallery t={t} activeOrgId={activeOrgId} modules={visibleModules} lockedPlanFor={lockedPlanFor} />
         </div>
       </main>
 
@@ -231,37 +244,43 @@ export default function Dashboard() {
 }
 
 function ModuleGallery({
-  t, activeOrgId, modules,
+  t, activeOrgId, modules, lockedPlanFor,
 }: {
-  t: (key: string) => string
+  t: (key: string, options?: Record<string, string>) => string
   activeOrgId: string | null
   modules: typeof MODULES
+  lockedPlanFor: (mod: { id: string }) => string | null
 }) {
   return (
     <div>
       <h2 style={styles.galleryTitle}>{t('galleryTitle')}</h2>
       <p style={styles.gallerySubtitle}>{t('gallerySubtitle')}</p>
       <div style={styles.galleryGrid}>
-        {modules.map(mod => (
-          <div
-            key={mod.id}
-            style={{
-              ...styles.moduleCard,
-              ...(mod.status === 'soon' ? styles.moduleCardDisabled : {}),
-            }}
-          >
-            <div style={styles.moduleIcon}>{mod.icon}</div>
-            <h3 style={styles.moduleName}>{t(mod.labelKey)}</h3>
-            <p style={styles.moduleDescription}>{t(mod.descKey)}</p>
-            {mod.status === 'soon'
-              ? <span style={styles.moduleSoonBadge}>{t('comingSoon')}</span>
-              : (
-                <button style={styles.moduleButton} onClick={() => launchModule(mod, activeOrgId)}>
-                  {t('enterModule')} →
-                </button>
-              )}
-          </div>
-        ))}
+        {modules.map(mod => {
+          const lockedPlan = lockedPlanFor(mod)
+          return (
+            <div
+              key={mod.id}
+              style={{
+                ...styles.moduleCard,
+                ...(mod.status === 'soon' || lockedPlan ? styles.moduleCardDisabled : {}),
+              }}
+            >
+              <div style={styles.moduleIcon}>{mod.icon}</div>
+              <h3 style={styles.moduleName}>{t(mod.labelKey)}</h3>
+              <p style={styles.moduleDescription}>{t(mod.descKey)}</p>
+              {mod.status === 'soon'
+                ? <span style={styles.moduleSoonBadge}>{t('comingSoon')}</span>
+                : lockedPlan
+                  ? <span style={styles.moduleSoonBadge}>🔒 {t('availableFromPlan', { plan: lockedPlan })}</span>
+                  : (
+                    <button style={styles.moduleButton} onClick={() => launchModule(mod, activeOrgId)}>
+                      {t('enterModule')} →
+                    </button>
+                  )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

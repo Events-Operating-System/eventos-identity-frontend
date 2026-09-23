@@ -10,15 +10,24 @@ export type ModuleTile = { id: string }
 // Ocultarla junto con el resto dejaba a un usuario nuevo sin ningún tile
 // clickeable. El resto sigue oculto: sin org activa no hay org_id que
 // resolver contra get_user_role_and_modules().
+//
+// planLockedKeys: módulos que el rol permitiría pero el plan no incluye
+// (usePlanLockedModules). Se devuelven también, en el orden del catálogo,
+// para mostrarlos bloqueados con upsell — el caller decide cómo renderizarlos.
+// Solo se suman una vez resueltos los permisos (moduleKeys !== null).
 export function getVisibleModules<T extends ModuleTile>(
   modules: T[],
   moduleKeys: string[] | null,
   activeOrgId: string | null,
+  planLockedKeys: string[] = [],
 ): T[] {
   if (moduleKeys === null) {
     return activeOrgId === null
       ? modules.filter((mod) => mod.id === 'administrativo')
       : []
   }
-  return modules.filter((mod) => moduleKeys.includes(HANDOFF_MODULE_KEY[mod.id]))
+  return modules.filter((mod) => {
+    const key = HANDOFF_MODULE_KEY[mod.id]
+    return moduleKeys.includes(key) || planLockedKeys.includes(key)
+  })
 }

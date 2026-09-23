@@ -16,4 +16,15 @@ describe('getVisibleModules', () => {
     expect(getVisibleModules(MODULES, ['ventas', 'financiero'], 'org-123'))
       .toEqual([{ id: 'ventas' }, { id: 'financiero' }])
   })
+
+  it('suma los módulos bloqueados por plan, en el orden del catálogo', () => {
+    const catalog = [{ id: 'ventas' }, { id: 'agentes-ai' }, { id: 'financiero' }]
+    expect(getVisibleModules(catalog, ['ventas', 'financiero'], 'org-123', ['agentes_ai']))
+      .toEqual([{ id: 'ventas' }, { id: 'agentes-ai' }, { id: 'financiero' }])
+  })
+
+  it('los bloqueados por plan no aparecen mientras los permisos no resolvieron', () => {
+    const catalog = [{ id: 'agentes-ai' }]
+    expect(getVisibleModules(catalog, null, 'org-123', ['agentes_ai'])).toEqual([])
+  })
 })
