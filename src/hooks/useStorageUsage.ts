@@ -24,8 +24,14 @@ export function useStorageUsage(activeOrgId: string | null): StorageUsage | null
         ? null
         : ((data ?? []) as { metric: string; used: number; max_allowed: number | null }[])
             .find((r) => r.metric === 'storage_bytes')
-      const usage = row && row.max_allowed
-        ? { used: row.used, limit: row.max_allowed, pct: Math.floor((row.used / row.max_allowed) * 100) }
+      // Mismo criterio que la base (bloquea con used >= limit): un límite 0
+      // es almacenamiento lleno, no "sin límite".
+      const usage = row && row.max_allowed !== null
+        ? {
+            used: row.used,
+            limit: row.max_allowed,
+            pct: row.max_allowed > 0 ? Math.floor((row.used / row.max_allowed) * 100) : 100,
+          }
         : null
       setResult({ orgId: activeOrgId, usage })
     })
