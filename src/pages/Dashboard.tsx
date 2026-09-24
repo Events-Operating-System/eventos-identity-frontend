@@ -7,6 +7,7 @@ import type { AppLocale } from '../i18n/resolveLocale'
 import { useActiveOrg } from '../hooks/useActiveOrg'
 import { useModuleAccess } from '../hooks/useModuleAccess'
 import { usePlanLockedModules } from '../hooks/usePlanLockedModules'
+import { useStorageUsage } from '../hooks/useStorageUsage'
 import { goToModule, HANDOFF_MODULE_KEY, type ModuleLike } from '../lib/goToModule'
 import { getVisibleModules } from '../lib/visibleModules'
 import OrgSwitcher from '../components/OrgSwitcher'
@@ -98,6 +99,9 @@ export default function Dashboard() {
   const planLocked = usePlanLockedModules(activeOrgId)
   const visibleModules = getVisibleModules(MODULES, moduleKeys, activeOrgId, [...planLocked.keys()])
   const lockedPlanFor = (mod: { id: string }) => planLocked.get(HANDOFF_MODULE_KEY[mod.id]) ?? null
+  // Aviso de almacenamiento desde el 80% (Planes Fase B). Informativo: el
+  // bloqueo de subidas al 100% lo aplica la base, no esta pantalla.
+  const storage = useStorageUsage(activeOrgId)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -235,6 +239,21 @@ export default function Dashboard() {
         </header>
 
         <div style={styles.content} className="eos-content">
+          {storage && storage.pct >= 80 && (
+            <div
+              role="status"
+              style={{
+                ...styles.storageBanner,
+                ...(storage.pct >= 100 ? styles.storageBannerFull : {}),
+              }}
+            >
+              {t(storage.pct >= 100 ? 'storageBannerFull' : 'storageBannerWarning', {
+                pct: Math.min(storage.pct, 100),
+                used: (storage.used / 1_000_000_000).toLocaleString(locale, { maximumFractionDigits: 2 }),
+                limit: (storage.limit / 1_000_000_000).toLocaleString(locale, { maximumFractionDigits: 2 }),
+              })}
+            </div>
+          )}
           <ModuleGallery t={t} activeOrgId={activeOrgId} modules={visibleModules} lockedPlanFor={lockedPlanFor} />
         </div>
       </main>
@@ -417,6 +436,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   content: { flex: 1, overflowY: 'auto', padding: 32 },
+  storageBanner: {
+    marginBottom: 20, padding: '12px 16px', borderRadius: 10, fontSize: 13, lineHeight: 1.5,
+    background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E',
+  },
+  storageBannerFull: { background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B' },
 
   // Module gallery (home screen)
   galleryTitle: { fontSize: 22, fontWeight: 700, color: COLORS.negro, margin: '0 0 4px' },

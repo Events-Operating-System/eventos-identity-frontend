@@ -54,5 +54,7 @@
   "moduleCliente": "Portal do Cliente",
   "moduleClienteDesc": "Portal externo para seus clientes acompanharem o status do evento.",
   "comingSoon": "Em breve",
-  "availableFromPlan": "Disponível a partir do {{plan}}"
+  "availableFromPlan": "Disponível a partir do {{plan}}",
+  "storageBannerWarning": "Seu armazenamento está em {{pct}}% ({{used}} GB de {{limit}} GB). Ao chegar a 100% você não poderá enviar novos arquivos. Para liberar espaço, exclua arquivos ou solicite uma mudança de plano.",
+  "storageBannerFull": "Armazenamento cheio ({{used}} GB de {{limit}} GB): não é possível enviar novos arquivos. Ver, baixar e excluir arquivos continua disponível. Para liberar espaço, exclua arquivos ou solicite uma mudança de plano."
 }

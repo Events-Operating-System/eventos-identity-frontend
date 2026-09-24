@@ -54,5 +54,7 @@
   "moduleCliente": "Client Portal",
   "moduleClienteDesc": "External portal for your clients to track their event status.",
   "comingSoon": "Coming soon",
-  "availableFromPlan": "Available from {{plan}}"
+  "availableFromPlan": "Available from {{plan}}",
+  "storageBannerWarning": "Your storage is at {{pct}}% ({{used}} GB of {{limit}} GB). At 100% you won't be able to upload new files. To free up space, delete files or request a plan change.",
+  "storageBannerFull": "Storage full ({{used}} GB of {{limit}} GB): new files can't be uploaded. Viewing, downloading and deleting files is still available. To free up space, delete files or request a plan change."
 }
