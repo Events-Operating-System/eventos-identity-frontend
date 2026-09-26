@@ -8,6 +8,7 @@ import { useActiveOrg } from '../hooks/useActiveOrg'
 import { useModuleAccess } from '../hooks/useModuleAccess'
 import { usePlanLockedModules } from '../hooks/usePlanLockedModules'
 import { useStorageUsage } from '../hooks/useStorageUsage'
+import { useTrialStatus } from '../hooks/useTrialStatus'
 import { goToModule, HANDOFF_MODULE_KEY, type ModuleLike } from '../lib/goToModule'
 import { getVisibleModules } from '../lib/visibleModules'
 import OrgSwitcher from '../components/OrgSwitcher'
@@ -102,6 +103,9 @@ export default function Dashboard() {
   // Aviso de almacenamiento desde el 80% (Planes Fase B). Informativo: el
   // bloqueo de subidas al 100% lo aplica la base, no esta pantalla.
   const storage = useStorageUsage(activeOrgId)
+  // Fase D3: aviso de fin de prueba desde 14 días antes (solo owner/admin ven
+  // la fila; informativo — el corte lo hace Stripe).
+  const trial = useTrialStatus(activeOrgId)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -251,6 +255,17 @@ export default function Dashboard() {
                 pct: Math.min(storage.pct, 100),
                 used: (storage.used / 1_000_000_000).toLocaleString(locale, { maximumFractionDigits: 2 }),
                 limit: (storage.limit / 1_000_000_000).toLocaleString(locale, { maximumFractionDigits: 2 }),
+              })}
+            </div>
+          )}
+          {trial && trial.daysLeft <= 14 && (
+            <div
+              role="status"
+              style={{ ...styles.storageBanner, ...(trial.hasPaymentMethod ? styles.trialBannerOk : {}) }}
+            >
+              {t(trial.hasPaymentMethod ? 'trialBannerWithCard' : 'trialBannerNoCard', {
+                count: trial.daysLeft,
+                date: new Date(trial.trialEnd).toLocaleDateString(locale),
               })}
             </div>
           )}
@@ -441,6 +456,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E',
   },
   storageBannerFull: { background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B' },
+  trialBannerOk: { background: '#EEF2FF', border: '1px solid #C7D2FE', color: '#3730A3' },
 
   // Module gallery (home screen)
   galleryTitle: { fontSize: 22, fontWeight: 700, color: COLORS.negro, margin: '0 0 4px' },
