@@ -57,8 +57,10 @@
   "availableFromPlan": "Disponível a partir do {{plan}}",
   "storageBannerWarning": "Seu armazenamento está em {{pct}}% ({{used}} GB de {{limit}} GB). Ao chegar a 100% você não poderá enviar novos arquivos. Para liberar espaço, exclua arquivos ou solicite uma mudança de plano.",
   "storageBannerFull": "Armazenamento cheio ({{used}} GB de {{limit}} GB): não é possível enviar novos arquivos. Ver, baixar e excluir arquivos continua disponível. Para liberar espaço, exclua arquivos ou solicite uma mudança de plano.",
+  "trialBannerNoCard_zero": "Seu teste termina hoje ({{date}}). Adicione uma forma de pagamento em Administración → Organización para não perder o acesso.",
   "trialBannerNoCard_one": "Seu teste termina amanhã ({{date}}). Adicione uma forma de pagamento em Administración → Organización para não perder o acesso.",
   "trialBannerNoCard_other": "Seu teste termina em {{count}} dias ({{date}}). Adicione uma forma de pagamento em Administración → Organización para não perder o acesso.",
+  "trialBannerWithCard_zero": "Seu teste termina hoje ({{date}}). Depois, o plano é cobrado no cartão salvo.",
   "trialBannerWithCard_one": "Seu teste termina amanhã ({{date}}). Depois, o plano é cobrado no cartão salvo.",
   "trialBannerWithCard_other": "Seu teste termina em {{count}} dias ({{date}}). Depois, o plano é cobrado no cartão salvo."
 }

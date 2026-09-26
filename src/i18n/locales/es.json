@@ -57,8 +57,10 @@
   "availableFromPlan": "Disponible desde {{plan}}",
   "storageBannerWarning": "Tu almacenamiento está al {{pct}}% ({{used}} GB de {{limit}} GB). Al llegar al 100% no vas a poder subir archivos nuevos. Para liberar espacio, eliminá archivos o pedí un cambio de plan.",
   "storageBannerFull": "Almacenamiento lleno ({{used}} GB de {{limit}} GB): no se pueden subir archivos nuevos. Ver, descargar y eliminar archivos sigue disponible. Para liberar espacio, eliminá archivos o pedí un cambio de plan.",
+  "trialBannerNoCard_zero": "Tu prueba termina hoy ({{date}}). Agregá una forma de pago en Administración → Organización para no perder el acceso.",
   "trialBannerNoCard_one": "Tu prueba termina mañana ({{date}}). Agregá una forma de pago en Administración → Organización para no perder el acceso.",
   "trialBannerNoCard_other": "Tu prueba termina en {{count}} días ({{date}}). Agregá una forma de pago en Administración → Organización para no perder el acceso.",
+  "trialBannerWithCard_zero": "Tu prueba termina hoy ({{date}}). Después se cobra el plan con la tarjeta cargada.",
   "trialBannerWithCard_one": "Tu prueba termina mañana ({{date}}). Después se cobra el plan con la tarjeta cargada.",
   "trialBannerWithCard_other": "Tu prueba termina en {{count}} días ({{date}}). Después se cobra el plan con la tarjeta cargada."
 }

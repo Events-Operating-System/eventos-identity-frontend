@@ -57,8 +57,10 @@
   "availableFromPlan": "Available from {{plan}}",
   "storageBannerWarning": "Your storage is at {{pct}}% ({{used}} GB of {{limit}} GB). At 100% you won't be able to upload new files. To free up space, delete files or request a plan change.",
   "storageBannerFull": "Storage full ({{used}} GB of {{limit}} GB): new files can't be uploaded. Viewing, downloading and deleting files is still available. To free up space, delete files or request a plan change.",
+  "trialBannerNoCard_zero": "Your trial ends today ({{date}}). Add a payment method in Administración → Organización to keep access.",
   "trialBannerNoCard_one": "Your trial ends tomorrow ({{date}}). Add a payment method in Administración → Organización to keep access.",
   "trialBannerNoCard_other": "Your trial ends in {{count}} days ({{date}}). Add a payment method in Administración → Organización to keep access.",
+  "trialBannerWithCard_zero": "Your trial ends today ({{date}}). After that, the plan is charged to the saved card.",
   "trialBannerWithCard_one": "Your trial ends tomorrow ({{date}}). After that, the plan is charged to the saved card.",
   "trialBannerWithCard_other": "Your trial ends in {{count}} days ({{date}}). After that, the plan is charged to the saved card."
 }

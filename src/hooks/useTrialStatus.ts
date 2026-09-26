@@ -7,6 +7,14 @@ import { supabase } from '../lib/supabase'
 // nada programado. daysLeft se calcula al llegar la respuesta.
 export type TrialStatus = { trialEnd: string; daysLeft: number; hasPaymentMethod: boolean }
 
+// Días de calendario (en la zona horaria del navegador) hasta el día de corte:
+// 0 = termina hoy, 1 = mañana. Con horas redondeadas hacia arriba, el 26/9 un
+// corte el 8/10 a las 23:59 daba "13 días" (visto en el test de D3).
+function calendarDaysUntil(end: Date): number {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  return Math.max(0, Math.round((startOfDay(end) - startOfDay(new Date())) / 86_400_000))
+}
+
 export function useTrialStatus(activeOrgId: string | null): TrialStatus | null {
   const [result, setResult] = useState<{ orgId: string; trial: TrialStatus | null } | null>(null)
   const fetchIdRef = useRef(0)
@@ -25,7 +33,7 @@ export function useTrialStatus(activeOrgId: string | null): TrialStatus | null {
           data?.status === 'trialing' && data.trial_end
             ? {
                 trialEnd: data.trial_end as string,
-                daysLeft: Math.max(0, Math.ceil((new Date(data.trial_end).getTime() - Date.now()) / 86_400_000)),
+                daysLeft: calendarDaysUntil(new Date(data.trial_end)),
                 hasPaymentMethod: !!data.has_payment_method,
               }
             : null
