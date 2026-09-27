@@ -105,7 +105,8 @@ export default function Dashboard() {
   const storage = useStorageUsage(activeOrgId)
   // Fase D3: aviso de fin de prueba desde 14 días antes (solo owner/admin ven
   // la fila; informativo — el corte lo hace Stripe).
-  const trial = useTrialStatus(activeOrgId)
+  // D4: también el aviso de pago fallido (margen de 5 días).
+  const { trial, pastDue } = useTrialStatus(activeOrgId)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -256,6 +257,11 @@ export default function Dashboard() {
                 used: (storage.used / 1_000_000_000).toLocaleString(locale, { maximumFractionDigits: 2 }),
                 limit: (storage.limit / 1_000_000_000).toLocaleString(locale, { maximumFractionDigits: 2 }),
               })}
+            </div>
+          )}
+          {pastDue && (
+            <div role="status" style={{ ...styles.storageBanner, ...styles.storageBannerFull }}>
+              {t('pastDueBanner', { date: new Date(pastDue.deadline).toLocaleDateString(locale) })}
             </div>
           )}
           {trial && trial.daysLeft <= 14 && (
