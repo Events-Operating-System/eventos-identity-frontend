@@ -9,7 +9,8 @@ import { useModuleAccess } from '../hooks/useModuleAccess'
 import { usePlanLockedModules } from '../hooks/usePlanLockedModules'
 import { useStorageUsage } from '../hooks/useStorageUsage'
 import { useTrialStatus } from '../hooks/useTrialStatus'
-import { goToModule, HANDOFF_MODULE_KEY, type ModuleLike } from '../lib/goToModule'
+import { HANDOFF_MODULE_KEY, type ModuleLike } from '../lib/goToModule'
+import { useModuleLauncher, type LaunchError } from '../hooks/useModuleLauncher'
 import { getVisibleModules } from '../lib/visibleModules'
 import OrgSwitcher from '../components/OrgSwitcher'
 
@@ -70,20 +71,6 @@ const LANGUAGES: { code: AppLocale; label: string; autonym: string }[] = [
   { code: 'pt', label: 'PT', autonym: 'Português' },
 ]
 
-// Sin organización activa, goToModule() no tiene org_id para emitir un
-// handoff code — y no debería: no hay nada que "acceder" todavía. Este es
-// el único caso (Administración) donde corresponde navegar directo, sin
-// código, dejando que ese módulo resuelva el alta (mismo camino que entrar
-// a mano por la URL — ver NoOrganization.tsx / OrgStatusGuard.tsx en
-// eventos-administracion-frontend).
-function launchModule(mod: ModuleLike, activeOrgId: string | null) {
-  if (!activeOrgId) {
-    if (mod.url) window.location.href = mod.url
-    return
-  }
-  goToModule(mod, activeOrgId)
-}
-
 export default function Dashboard() {
   const { t } = useTranslation()
   const [user, setUser] = useState<User | null>(null)
@@ -107,6 +94,9 @@ export default function Dashboard() {
   // la fila; informativo — el corte lo hace Stripe).
   // D4: también el aviso de pago fallido (margen de 5 días).
   const { trial, pastDue } = useTrialStatus(activeOrgId)
+  // Entrada a módulos con estado: "Abriendo…" mientras se pide el código y
+  // aviso si falla (antes el error se descartaba en silencio).
+  const { launch, launchingId, launchError, dismissError } = useModuleLauncher(activeOrgId)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -160,11 +150,11 @@ export default function Dashboard() {
           <p style={styles.navLabel}>{t('navLabel')}</p>
           {visibleModules.map(mod => {
             const lockedPlan = lockedPlanFor(mod)
-            const disabled = mod.status === 'soon' || lockedPlan !== null
+            const disabled = mod.status === 'soon' || lockedPlan !== null || launchingId !== null
             return (
               <button
                 key={mod.id}
-                onClick={() => launchModule(mod, activeOrgId)}
+                onClick={() => void launch(mod)}
                 disabled={disabled}
                 title={lockedPlan ? t('availableFromPlan', { plan: lockedPlan }) : undefined}
                 style={{
@@ -275,7 +265,21 @@ export default function Dashboard() {
               })}
             </div>
           )}
-          <ModuleGallery t={t} activeOrgId={activeOrgId} modules={visibleModules} lockedPlanFor={lockedPlanFor} />
+          {launchError && (
+            <LaunchErrorNotice
+              t={t}
+              error={launchError}
+              moduleName={t(MODULES.find((m) => m.id === launchError.moduleId)?.labelKey ?? '')}
+              onDismiss={dismissError}
+            />
+          )}
+          <ModuleGallery
+            t={t}
+            modules={visibleModules}
+            lockedPlanFor={lockedPlanFor}
+            launchingId={launchingId}
+            onLaunch={(mod) => void launch(mod)}
+          />
         </div>
       </main>
 
@@ -283,13 +287,34 @@ export default function Dashboard() {
   )
 }
 
-function ModuleGallery({
-  t, activeOrgId, modules, lockedPlanFor,
+// Aviso cuando no se pudo entrar a un módulo (código de entrada rechazado o
+// con error). Se cierra a mano o con el próximo intento.
+export function LaunchErrorNotice({
+  t, error, moduleName, onDismiss,
 }: {
   t: (key: string, options?: Record<string, string>) => string
-  activeOrgId: string | null
+  error: LaunchError
+  moduleName: string
+  onDismiss: () => void
+}) {
+  return (
+    <div role="alert" style={{ ...styles.storageBanner, ...styles.storageBannerFull, ...styles.launchNotice }}>
+      <span>{t(error.kind === 'denied' ? 'moduleLaunchDenied' : 'moduleLaunchError', { module: moduleName })}</span>
+      <button type="button" onClick={onDismiss} aria-label={t('dismissNotice')} style={styles.launchNoticeClose}>
+        ×
+      </button>
+    </div>
+  )
+}
+
+function ModuleGallery({
+  t, modules, lockedPlanFor, launchingId, onLaunch,
+}: {
+  t: (key: string, options?: Record<string, string>) => string
   modules: typeof MODULES
   lockedPlanFor: (mod: { id: string }) => string | null
+  launchingId: string | null
+  onLaunch: (mod: ModuleLike) => void
 }) {
   return (
     <div>
@@ -314,8 +339,13 @@ function ModuleGallery({
                 : lockedPlan
                   ? <span style={styles.moduleSoonBadge}>🔒 {t('availableFromPlan', { plan: lockedPlan })}</span>
                   : (
-                    <button style={styles.moduleButton} onClick={() => launchModule(mod, activeOrgId)}>
-                      {t('enterModule')} →
+                    <button
+                      style={{ ...styles.moduleButton, ...(launchingId !== null ? styles.moduleButtonBusy : {}) }}
+                      onClick={() => onLaunch(mod)}
+                      disabled={launchingId !== null}
+                      aria-busy={launchingId === mod.id}
+                    >
+                      {launchingId === mod.id ? t('openingModule') : `${t('enterModule')} →`}
                     </button>
                   )}
             </div>
@@ -494,6 +524,11 @@ const styles: Record<string, React.CSSProperties> = {
   moduleButton: {
     padding: '10px 18px', background: COLORS.azul, color: COLORS.blanco,
     border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+  },
+  moduleButtonBusy: { opacity: 0.6, cursor: 'default' },
+  launchNotice: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  launchNoticeClose: {
+    background: 'none', border: 'none', fontSize: 20, lineHeight: 1, cursor: 'pointer', color: 'inherit', padding: 0,
   },
   moduleCardDisabled: { opacity: 0.6 },
   moduleSoonBadge: {

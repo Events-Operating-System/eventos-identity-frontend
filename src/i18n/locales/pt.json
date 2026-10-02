@@ -63,5 +63,9 @@
   "trialBannerNoCard_other": "Seu teste termina em {{count}} dias ({{date}}). Adicione uma forma de pagamento em Administración → Organización para não perder o acesso.",
   "trialBannerWithCard_zero": "Seu teste termina hoje ({{date}}). Depois, o plano é cobrado no cartão salvo.",
   "trialBannerWithCard_one": "Seu teste termina amanhã ({{date}}). Depois, o plano é cobrado no cartão salvo.",
-  "trialBannerWithCard_other": "Seu teste termina em {{count}} dias ({{date}}). Depois, o plano é cobrado no cartão salvo."
+  "trialBannerWithCard_other": "Seu teste termina em {{count}} dias ({{date}}). Depois, o plano é cobrado no cartão salvo.",
+  "openingModule": "Abrindo…",
+  "moduleLaunchError": "Não foi possível abrir {{module}}. Tente novamente em instantes.",
+  "moduleLaunchDenied": "Você não tem acesso a {{module}} nesta organização. Se precisar, peça a um administrador.",
+  "dismissNotice": "Fechar aviso"
 }

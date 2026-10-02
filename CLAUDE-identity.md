@@ -82,3 +82,19 @@
 - Investigar las 8 migraciones remotas sin archivo local en `eventos-administracion-frontend` (ver arriba) — no se sabe si son ruido (aplicadas desde el dashboard/otra máquina) o schema real desconocido
 - Cuando se replique este patrón de i18n al resto de los módulos, reusar el mismo mecanismo de resolución (`organization_members.locale` → `organizations.locale` → navegador) en vez de reinventarlo por app
 - Verificar el breakpoint de 480px (`.eos-chip-name`, `.eos-auth-card` compacto) en un teléfono real o el device toolbar de Chrome DevTools — no se pudo emular un viewport tan angosto con la herramienta de automatización disponible en este entorno
+
+## Entrar a un módulo: ya no falla en silencio (2026-10-02)
+
+`launchModule()` en `src/pages/Dashboard.tsx` llamaba a `goToModule()` y descartaba el resultado: si
+`create-module-handoff-code` fallaba ('error') o rechazaba ('denied'), el usuario tocaba "Entrar" y no
+pasaba nada. Ahora `src/hooks/useModuleLauncher.ts`:
+- mientras se pide el código, el botón del módulo muestra "Abriendo…" y todos los botones de módulo
+  quedan deshabilitados (no se puede disparar dos veces);
+- si falla (o `goToModule` lanza), los botones vuelven a la normalidad y aparece un aviso arriba de los
+  módulos (`LaunchErrorNotice`, `role="alert"`, ES/EN/PT): "No se pudo entrar a {módulo}. Probá de
+  nuevo…" o, si fue 'denied', "No tenés acceso a {módulo} en esta organización…". Se cierra con × o con
+  el próximo intento;
+- si navega, queda en "Abriendo…" hasta que la página se va; si el usuario vuelve con "Atrás" y el
+  navegador restaura la página de su caché (`pageshow` con `persisted`), se resetea;
+- sin org activa, navega directo como antes (Administración resuelve el alta).
+Tests: `src/hooks/useModuleLauncher.test.ts`, `src/pages/LaunchErrorNotice.test.tsx`.

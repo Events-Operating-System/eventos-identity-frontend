@@ -63,5 +63,9 @@
   "trialBannerNoCard_other": "Tu prueba termina en {{count}} días ({{date}}). Agregá una forma de pago en Administración → Organización para no perder el acceso.",
   "trialBannerWithCard_zero": "Tu prueba termina hoy ({{date}}). Después se cobra el plan con la tarjeta cargada.",
   "trialBannerWithCard_one": "Tu prueba termina mañana ({{date}}). Después se cobra el plan con la tarjeta cargada.",
-  "trialBannerWithCard_other": "Tu prueba termina en {{count}} días ({{date}}). Después se cobra el plan con la tarjeta cargada."
+  "trialBannerWithCard_other": "Tu prueba termina en {{count}} días ({{date}}). Después se cobra el plan con la tarjeta cargada.",
+  "openingModule": "Abriendo…",
+  "moduleLaunchError": "No se pudo entrar a {{module}}. Probá de nuevo en un momento.",
+  "moduleLaunchDenied": "No tenés acceso a {{module}} en esta organización. Si lo necesitás, pedíselo a un administrador.",
+  "dismissNotice": "Cerrar aviso"
 }

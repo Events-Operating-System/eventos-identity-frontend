@@ -63,5 +63,9 @@
   "trialBannerNoCard_other": "Your trial ends in {{count}} days ({{date}}). Add a payment method in Administración → Organización to keep access.",
   "trialBannerWithCard_zero": "Your trial ends today ({{date}}). After that, the plan is charged to the saved card.",
   "trialBannerWithCard_one": "Your trial ends tomorrow ({{date}}). After that, the plan is charged to the saved card.",
-  "trialBannerWithCard_other": "Your trial ends in {{count}} days ({{date}}). After that, the plan is charged to the saved card."
+  "trialBannerWithCard_other": "Your trial ends in {{count}} days ({{date}}). After that, the plan is charged to the saved card.",
+  "openingModule": "Opening…",
+  "moduleLaunchError": "We couldn't open {{module}}. Try again in a moment.",
+  "moduleLaunchDenied": "You don't have access to {{module}} in this organization. If you need it, ask an administrator.",
+  "dismissNotice": "Dismiss"
 }
