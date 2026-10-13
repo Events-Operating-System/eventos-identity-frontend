@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import i18n from '../i18n/i18n'
 import { detectBrowserLocale } from '../i18n/resolveLocale'
+import { destinationForSession } from '../lib/sessionRedirect'
 
 // Builds the OAuth callback URL on the *target* app's own origin (each
 // EventOS module owns its own /callback landing page — sessions aren't
@@ -29,6 +31,34 @@ export default function Login() {
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  // Mientras se revisa si ya hay sesión no se muestra el botón de Google.
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  // Con sesión ya abierta (y válida contra el servidor) no se pide login de
+  // nuevo: directo al destino. Una sesión guardada que ya no sirve se borra de
+  // este navegador y se muestra el login.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        if (!cancelled) setCheckingSession(false)
+        return
+      }
+      const { data, error } = await supabase.auth.getUser()
+      if (error || !data.user) {
+        if (!error || !isAuthRetryableFetchError(error)) {
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+        }
+        if (!cancelled) setCheckingSession(false)
+        return
+      }
+      const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+      const destination = await destinationForSession(data.user.id, redirectParam)
+      if (!cancelled) window.location.replace(destination)
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   // Pre-auth: todavía no hay user_id/org, así que el único idioma
   // disponible es el detectado del navegador (ver eventos-identity
@@ -70,16 +100,28 @@ export default function Login() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      setError(error.message)
+    if (error || !data.user) {
+      setError(error?.message ?? t('sessionError'))
       setLoading(false)
       return
     }
 
+    // La sesión queda en Identity: al módulo se entra con el código de un solo
+    // uso, igual que desde el Dashboard (antes se iba al módulo sin sesión).
     const redirectParam = new URLSearchParams(window.location.search).get('redirect')
-    window.location.replace(redirectParam || '/dashboard')
+    window.location.replace(await destinationForSession(data.user.id, redirectParam))
+  }
+
+  if (checkingSession) {
+    return (
+      <div style={styles.container} className="eos-auth-container">
+        <div style={styles.card} className="eos-auth-card">
+          <p style={styles.subtitle} role="status">{t('verifyingSession')}</p>
+        </div>
+      </div>
+    )
   }
 
   return (

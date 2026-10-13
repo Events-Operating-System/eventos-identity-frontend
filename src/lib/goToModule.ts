@@ -41,7 +41,19 @@ export type LaunchResult = 'navigating' | 'denied' | 'error'
 export async function goToModule(mod: ModuleLike, activeOrgId: string | null): Promise<LaunchResult> {
   if (!mod.url) return 'error'
 
-  const moduleKey = HANDOFF_MODULE_KEY[mod.id]
+  const result = await requestHandoffCode(mod.id, activeOrgId)
+  if (typeof result === 'string') return result
+
+  window.location.href = `${mod.url}/callback#code=${result.code}`
+  return 'navigating'
+}
+
+// Pide el código de un solo uso para entrar a un módulo. No navega.
+export async function requestHandoffCode(
+  moduleId: string,
+  activeOrgId: string | null,
+): Promise<{ code: string } | 'denied' | 'error'> {
+  const moduleKey = HANDOFF_MODULE_KEY[moduleId]
   if (!moduleKey || !activeOrgId) return 'error'
 
   const { data, error } = await supabase.functions.invoke<{ code: string }>(
@@ -54,7 +66,5 @@ export async function goToModule(mod: ModuleLike, activeOrgId: string | null): P
     return status === 403 ? 'denied' : 'error'
   }
   if (!data?.code) return 'error'
-
-  window.location.href = `${mod.url}/callback#code=${data.code}`
-  return 'navigating'
+  return { code: data.code }
 }

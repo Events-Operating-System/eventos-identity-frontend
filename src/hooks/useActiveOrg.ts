@@ -1,30 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { fetchUsableMemberships, pickActiveOrgId, readStoredOrgId, writeStoredOrgId, type OrgMembership } from '../lib/activeOrg'
 
-export type OrgMembership = { orgId: string; orgName: string }
-
-function storageKey(userId: string): string {
-  return `eventos_active_org:${userId}`
-}
-
-function readStoredOrgId(userId: string): string | null {
-  try {
-    return window.localStorage.getItem(storageKey(userId))
-  } catch {
-    return null
-  }
-}
-
-function writeStoredOrgId(userId: string, orgId: string): void {
-  try {
-    window.localStorage.setItem(storageKey(userId), orgId)
-  } catch {
-    // localStorage puede fallar en modo privado — la selección simplemente
-    // no persiste entre sesiones, no es un error fatal.
-  }
-}
-
-type MembershipRow = { org_id: string; organizations: { id: string; name: string; approval_status: string } | null }
+export type { OrgMembership }
 
 // Organizaciones activas y aprobadas del usuario, con selección persistida —
 // mismo criterio de "usable" y mismo formato de localStorage key que ya
@@ -35,48 +12,32 @@ type MembershipRow = { org_id: string; organizations: { id: string; name: string
 // en dar una organización activa elegible, necesaria para emitir el código
 // de handoff hacia los módulos con el org_id correcto.
 export function useActiveOrg(userId: string | undefined) {
-  const [memberships, setMemberships] = useState<OrgMembership[]>([])
-  const [loading, setLoading] = useState(true)
+  // Atado al usuario para el que se pidió: sin usuario no hay membresías ni carga.
+  const [loaded, setLoaded] = useState<{ userId: string; memberships: OrgMembership[] } | null>(null)
   const [overrideOrgId, setOverrideOrgId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!userId) {
-      setMemberships([])
-      setLoading(false)
-      return
-    }
+    if (!userId) return
     let cancelled = false
-    setLoading(true)
 
-    supabase
-      .from('organization_members')
-      .select('org_id, organizations(id, name, approval_status)')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .returns<MembershipRow[]>()
-      .then(({ data }) => {
-        if (cancelled) return
-        const usable = (data ?? [])
-          .map((row) => row.organizations)
-          .filter((org): org is { id: string; name: string; approval_status: string } => org?.approval_status === 'active')
-          .map((org) => ({ orgId: org.id, orgName: org.name }))
-        setMemberships(usable)
-        setLoading(false)
-      })
+    fetchUsableMemberships(userId).then((usable) => {
+      if (cancelled) return
+      setLoaded({ userId, memberships: usable })
+    })
 
     return () => {
       cancelled = true
     }
   }, [userId])
 
+  const ready = !!userId && loaded?.userId === userId
+  const memberships = useMemo(() => (ready && loaded ? loaded.memberships : []), [ready, loaded])
+  const loading = !!userId && !ready
+
   const storedOrgId = useMemo(() => (userId ? readStoredOrgId(userId) : null), [userId])
   const manualOrgId = overrideOrgId ?? storedOrgId
 
-  const activeOrgId = useMemo(() => {
-    if (memberships.length === 0) return null
-    const valid = manualOrgId && memberships.some((m) => m.orgId === manualOrgId) ? manualOrgId : null
-    return valid ?? [...memberships].sort((a, b) => a.orgName.localeCompare(b.orgName))[0].orgId
-  }, [manualOrgId, memberships])
+  const activeOrgId = useMemo(() => pickActiveOrgId(memberships, manualOrgId), [manualOrgId, memberships])
 
   // Self-cura la preferencia guardada (primera vez, o si apuntaba a una
   // org que ya no es válida) — solo escribe a localStorage.
