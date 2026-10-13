@@ -98,3 +98,20 @@ pasaba nada. Ahora `src/hooks/useModuleLauncher.ts`:
   navegador restaura la página de su caché (`pageshow` con `persisted`), se resetea;
 - sin org activa, navega directo como antes (Administración resuelve el alta).
 Tests: `src/hooks/useModuleLauncher.test.ts`, `src/pages/LaunchErrorNotice.test.tsx`.
+
+## Login con sesión abierta: directo al destino (2026-10-12)
+
+Antes el login mostraba siempre el botón de Google, aunque ya hubiera sesión. Ahora `Login.tsx` valida la sesión
+guardada contra el servidor (`getUser`) y, si sirve, no muestra el botón:
+- `?redirect=` de un módulo del catálogo (`lib/modules.ts`, por origen) → entra con el código de un solo uso
+  (`requestHandoffCode`, el mismo camino del Dashboard, que vuelve a chequear el acceso al módulo) para la org
+  activa; se conserva el query del redirect.
+- sin redirect, redirect desconocido, sin acceso, sin org o con error → `/dashboard`. Nunca al módulo sin código.
+- sesión guardada que el servidor ya no acepta (p.ej. cierre de sesión global desde un módulo) → se borra de este
+  navegador y se muestra el login.
+- corte de ida y vuelta: a la tercera entrada automática en un minuto, `/dashboard`.
+
+El login por password usa el mismo camino (antes iba al módulo sin sesión y seguía cualquier `redirect`).
+Lógica en `lib/sessionRedirect.ts`; org activa en `lib/activeOrg.ts` (la usa también `useActiveOrg`).
+La vuelta a la página exacta la resuelve cada módulo (`returnPath.ts` en Eventos, Ventas e Inventarios): la ruta
+no viaja por Identity. Tests: `sessionRedirect.test.ts`, `Login.test.tsx`. No se probó en navegador.
