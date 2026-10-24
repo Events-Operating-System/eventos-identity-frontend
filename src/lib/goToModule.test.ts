@@ -86,4 +86,20 @@ describe('goToModule', () => {
     expect(result).toBe('error')
     expect(invokeMock).not.toHaveBeenCalled()
   })
+
+  it('si el caller cortó la espera (timeout), no navega aunque el código llegue tarde', async () => {
+    const controller = new AbortController()
+    invokeMock.mockImplementation(async () => {
+      controller.abort()
+      return { data: { code: 'tarde' }, error: null }
+    })
+    const result = await goToModule(
+      { id: 'ventas', url: 'https://eventos-ventas-frontend.vercel.app' },
+      'org-123',
+      controller.signal,
+    )
+    expect(result).toBe('timeout')
+    expect(window.location.href).toBe('')
+    expect(invokeMock.mock.calls[0][1].signal).toBe(controller.signal)
+  })
 })

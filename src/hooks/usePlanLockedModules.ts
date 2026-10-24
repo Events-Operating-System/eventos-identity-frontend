@@ -6,11 +6,12 @@ import { supabase } from '../lib/supabase'
 // tile bloqueado con "Disponible desde <plan>" en vez de ocultarse. Un módulo
 // que el rol tampoco permite no aparece acá (sigue oculto, como hasta hoy).
 //
-// module_key -> label del primer plan que lo incluye. Mapa vacío mientras
-// resuelve o si el RPC falla: en ese caso el tile simplemente no aparece —
+// module_key -> label del primer plan que lo incluye. null mientras resuelve
+// (el Dashboard espera para no sumar el tile bloqueado después). Mapa vacío
+// si el RPC falla: en ese caso el tile simplemente no aparece —
 // el acceso lo sigue decidiendo get_user_role_and_modules() (useModuleAccess),
 // esto es solo qué explicación se muestra, nunca abre acceso.
-export function usePlanLockedModules(activeOrgId: string | null): Map<string, string> {
+export function usePlanLockedModules(activeOrgId: string | null): Map<string, string> | null {
   // El resultado se guarda junto con la org a la que corresponde: si la org
   // activa cambió, se ignora hasta que llegue el de la nueva (sin resetear
   // estado dentro del efecto).
@@ -39,7 +40,5 @@ export function usePlanLockedModules(activeOrgId: string | null): Map<string, st
       })
   }, [activeOrgId])
 
-  return result && result.orgId === activeOrgId ? result.locked : EMPTY
+  return result && result.orgId === activeOrgId ? result.locked : null
 }
-
-const EMPTY: Map<string, string> = new Map()

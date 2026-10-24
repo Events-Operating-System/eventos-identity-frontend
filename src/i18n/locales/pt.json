@@ -34,6 +34,8 @@
   "gallerySubtitle": "Escolha um módulo para começar a trabalhar.",
   "enterModule": "Abrir",
   "loading": "Carregando...",
+  "modulesLoadError": "Não foi possível carregar seus módulos.",
+  "retry": "Tentar novamente",
   "logout": "Sair",
   "moduleVentas": "Vendas",
   "moduleVentasDesc": "Gerencie clientes, cotações e oportunidades de venda.",
@@ -66,6 +68,7 @@
   "trialBannerWithCard_other": "Seu teste termina em {{count}} dias ({{date}}). Depois, o plano é cobrado no cartão salvo.",
   "openingModule": "Abrindo…",
   "moduleLaunchError": "Não foi possível abrir {{module}}. Tente novamente em instantes.",
+  "moduleLaunchTimeout": "{{module}} está demorando para responder. Tente novamente.",
   "moduleLaunchDenied": "Você não tem acesso a {{module}} nesta organização. Se precisar, peça a um administrador.",
   "dismissNotice": "Fechar aviso"
 }

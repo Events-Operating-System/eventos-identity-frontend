@@ -13,17 +13,22 @@ export type { OrgMembership }
 // de handoff hacia los módulos con el org_id correcto.
 export function useActiveOrg(userId: string | undefined) {
   // Atado al usuario para el que se pidió: sin usuario no hay membresías ni carga.
-  const [loaded, setLoaded] = useState<{ userId: string; memberships: OrgMembership[] } | null>(null)
+  // memberships null = la consulta falló (distinto de "no tiene organizaciones").
+  const [loaded, setLoaded] = useState<{ userId: string; memberships: OrgMembership[] | null } | null>(null)
   const [overrideOrgId, setOverrideOrgId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!userId) return
     let cancelled = false
 
-    fetchUsableMemberships(userId).then((usable) => {
-      if (cancelled) return
-      setLoaded({ userId, memberships: usable })
-    })
+    fetchUsableMemberships(userId).then(
+      (usable) => {
+        if (!cancelled) setLoaded({ userId, memberships: usable })
+      },
+      () => {
+        if (!cancelled) setLoaded({ userId, memberships: null })
+      },
+    )
 
     return () => {
       cancelled = true
@@ -31,8 +36,8 @@ export function useActiveOrg(userId: string | undefined) {
   }, [userId])
 
   const ready = !!userId && loaded?.userId === userId
-  const memberships = useMemo(() => (ready && loaded ? loaded.memberships : []), [ready, loaded])
-  const loading = !!userId && !ready
+  const memberships = useMemo(() => (ready && loaded?.memberships ? loaded.memberships : []), [ready, loaded])
+  const status: 'loading' | 'error' | 'ready' = !ready ? 'loading' : loaded?.memberships ? 'ready' : 'error'
 
   const storedOrgId = useMemo(() => (userId ? readStoredOrgId(userId) : null), [userId])
   const manualOrgId = overrideOrgId ?? storedOrgId
@@ -55,5 +60,5 @@ export function useActiveOrg(userId: string | undefined) {
     [userId],
   )
 
-  return { memberships, activeOrgId, setActiveOrgId, loading }
+  return { memberships, activeOrgId, setActiveOrgId, status }
 }

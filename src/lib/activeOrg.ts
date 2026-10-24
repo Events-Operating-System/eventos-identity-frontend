@@ -25,14 +25,17 @@ export function writeStoredOrgId(userId: string, orgId: string): void {
 
 type MembershipRow = { org_id: string; organizations: { id: string; name: string; approval_status: string } | null }
 
-// Organizaciones activas y aprobadas del usuario.
+// Organizaciones activas y aprobadas del usuario. Un error de la consulta
+// se lanza: tratarlo como "sin organizaciones" dejaba el Dashboard con solo
+// Administración (la vista de usuario nuevo) hasta recargar.
 export async function fetchUsableMemberships(userId: string): Promise<OrgMembership[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('organization_members')
     .select('org_id, organizations(id, name, approval_status)')
     .eq('user_id', userId)
     .eq('is_active', true)
     .returns<MembershipRow[]>()
+  if (error) throw error
   return (data ?? [])
     .map((row) => row.organizations)
     .filter((org): org is { id: string; name: string; approval_status: string } => org?.approval_status === 'active')

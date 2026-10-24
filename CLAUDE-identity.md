@@ -115,3 +115,20 @@ El login por password usa el mismo camino (antes iba al módulo sin sesión y se
 Lógica en `lib/sessionRedirect.ts`; org activa en `lib/activeOrg.ts` (la usa también `useActiveOrg`).
 La vuelta a la página exacta la resuelve cada módulo (`returnPath.ts` en Eventos, Ventas e Inventarios): la ruta
 no viaja por Identity. Tests: `sessionRedirect.test.ts`, `Login.test.tsx`. No se probó en navegador.
+
+## Dashboard: carga completa antes de dibujar; "Entrar" con límite de 8 s (2026-10-24)
+
+- Tras el login, el panel a veces mostraba solo Administración hasta recargar: con las organizaciones todavía
+  cargando (o con error en la consulta, que se tomaba como "sin organizaciones") `activeOrgId` era `null` y se
+  mostraba la vista de usuario nuevo. Ahora `getModulesView()` (`lib/visibleModules.ts`) da 'loading' hasta
+  tener organizaciones, permisos y bloqueos por plan, y 'error' (con Reintentar) si falla la consulta.
+- `useModuleLauncher`: bloqueo contra doble toque con un ref (no dependía del re-render); si el código no llega
+  en 8 s (`LAUNCH_TIMEOUT_MS`) se corta el pedido, no se navega aunque llegue tarde, y queda el aviso con
+  Reintentar (también en 'error'; no en 'denied').
+
+### Pendiente (acordado para 2026-10-25, no tocar antes)
+Bajar la demora de "Entrar" en `eventos-administracion-frontend` (requiere redeploy de la edge function):
+- `supabase/functions/_shared/cors.ts`: agregar `Access-Control-Max-Age: 86400` (hoy cada entrada paga un
+  preflight extra).
+- `create-module-handoff-code`: hacer en paralelo la consulta de la org y `get_user_role_and_modules` (hoy son
+  4 llamadas en serie).

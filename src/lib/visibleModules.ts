@@ -31,3 +31,25 @@ export function getVisibleModules<T extends ModuleTile>(
     return moduleKeys.includes(key) || planLockedKeys.includes(key)
   })
 }
+
+export type ModulesView<T> =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'ready'; modules: T[] }
+
+// Qué muestra el panel. Mientras falte cualquier dato (organizaciones,
+// permisos del rol o bloqueos por plan) es 'loading', nunca una lista
+// parcial: antes, recién logueado, activeOrgId todavía null se leía como
+// "usuario sin organización" y el panel quedaba con solo Administración.
+export function getModulesView<T extends ModuleTile>(input: {
+  modules: T[]
+  orgs: 'loading' | 'error' | 'ready'
+  activeOrgId: string | null
+  moduleKeys: string[] | null
+  planLockedKeys: string[] | null
+}): ModulesView<T> {
+  const { modules, orgs, activeOrgId, moduleKeys, planLockedKeys } = input
+  if (orgs !== 'ready') return { status: orgs }
+  if (activeOrgId !== null && (moduleKeys === null || planLockedKeys === null)) return { status: 'loading' }
+  return { status: 'ready', modules: getVisibleModules(modules, moduleKeys, activeOrgId, planLockedKeys ?? []) }
+}

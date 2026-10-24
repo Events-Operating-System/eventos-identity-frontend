@@ -27,4 +27,19 @@ describe('LaunchErrorNotice', () => {
     render(<LaunchErrorNotice t={t} error={{ moduleId: 'ventas', kind: 'error' }} moduleName="Vendas" onDismiss={() => {}} />)
     expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível abrir Vendas.')
   })
+
+  it('timeout → mensaje claro y "Reintentar" vuelve a intentar', async () => {
+    await i18n.changeLanguage('es')
+    const onRetry = vi.fn()
+    render(<LaunchErrorNotice t={t} error={{ moduleId: 'ventas', kind: 'timeout' }} moduleName="Ventas" onDismiss={() => {}} onRetry={onRetry} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Ventas está tardando en responder.')
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(onRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it('denied → sin "Reintentar" (reintentar no cambia el permiso)', async () => {
+    await i18n.changeLanguage('es')
+    render(<LaunchErrorNotice t={t} error={{ moduleId: 'ventas', kind: 'denied' }} moduleName="Ventas" onDismiss={() => {}} onRetry={() => {}} />)
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull()
+  })
 })

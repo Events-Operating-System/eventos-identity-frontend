@@ -20,7 +20,7 @@ export const HANDOFF_MODULE_KEY: Record<string, string> = {
 
 export type ModuleLike = { id: string; url?: string }
 
-export type LaunchResult = 'navigating' | 'denied' | 'error'
+export type LaunchResult = 'navigating' | 'denied' | 'error' | 'timeout'
 
 // Reemplaza pasar access_token/refresh_token crudos (compartían linaje de
 // refresh token con Identity y se rompían por la rotación de Supabase) por
@@ -38,10 +38,19 @@ export type LaunchResult = 'navigating' | 'denied' | 'error'
 // específico devuelve 'denied' y NUNCA navega — cualquier otro error
 // (red, 5xx, etc.) devuelve 'error' y tampoco navega. El caller decide qué
 // mostrar; no hay ningún camino que aterrice en mod.url sin sesión.
-export async function goToModule(mod: ModuleLike, activeOrgId: string | null): Promise<LaunchResult> {
+//
+// signal: el caller corta la espera (useModuleLauncher, tras unos segundos).
+// Una vez cortada, aunque el código llegue tarde, NO navega: el usuario ya
+// está viendo el aviso con "Reintentar".
+export async function goToModule(
+  mod: ModuleLike,
+  activeOrgId: string | null,
+  signal?: AbortSignal,
+): Promise<LaunchResult> {
   if (!mod.url) return 'error'
 
-  const result = await requestHandoffCode(mod.id, activeOrgId)
+  const result = await requestHandoffCode(mod.id, activeOrgId, signal)
+  if (signal?.aborted) return 'timeout'
   if (typeof result === 'string') return result
 
   window.location.href = `${mod.url}/callback#code=${result.code}`
@@ -52,13 +61,14 @@ export async function goToModule(mod: ModuleLike, activeOrgId: string | null): P
 export async function requestHandoffCode(
   moduleId: string,
   activeOrgId: string | null,
+  signal?: AbortSignal,
 ): Promise<{ code: string } | 'denied' | 'error'> {
   const moduleKey = HANDOFF_MODULE_KEY[moduleId]
   if (!moduleKey || !activeOrgId) return 'error'
 
   const { data, error } = await supabase.functions.invoke<{ code: string }>(
     'create-module-handoff-code',
-    { body: { org_id: activeOrgId, module_key: moduleKey } },
+    { body: { org_id: activeOrgId, module_key: moduleKey }, signal },
   )
 
   if (error) {

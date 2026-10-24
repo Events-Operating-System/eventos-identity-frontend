@@ -11,7 +11,7 @@ import { useStorageUsage } from '../hooks/useStorageUsage'
 import { useTrialStatus } from '../hooks/useTrialStatus'
 import { HANDOFF_MODULE_KEY, type ModuleLike } from '../lib/goToModule'
 import { useModuleLauncher, type LaunchError } from '../hooks/useModuleLauncher'
-import { getVisibleModules } from '../lib/visibleModules'
+import { getModulesView } from '../lib/visibleModules'
 import { MODULES } from '../lib/modules'
 import OrgSwitcher from '../components/OrgSwitcher'
 
@@ -27,16 +27,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const { locale, setLocale } = useOrgLocale(user?.id)
-  const { memberships, activeOrgId, setActiveOrgId } = useActiveOrg(user?.id)
-  // null mientras no hay org activa o el fetch está en curso: visibleModules
-  // queda vacío en ese lapso, salvo Administración (única puerta de alta) —
-  // ver getVisibleModules() / useModuleAccess.ts.
+  const { memberships, activeOrgId, setActiveOrgId, status: orgsStatus } = useActiveOrg(user?.id)
+  // null mientras no hay org activa o el fetch está en curso.
   const moduleKeys = useModuleAccess(activeOrgId)
   // Módulos que el rol permitiría pero el plan no incluye: se muestran
   // bloqueados con "Disponible desde <plan>", sin botón de entrar.
   const planLocked = usePlanLockedModules(activeOrgId)
-  const visibleModules = getVisibleModules(MODULES, moduleKeys, activeOrgId, [...planLocked.keys()])
-  const lockedPlanFor = (mod: { id: string }) => planLocked.get(HANDOFF_MODULE_KEY[mod.id]) ?? null
+  // 'loading' hasta tener organizaciones, permisos y bloqueos por plan: nunca
+  // se dibuja una lista parcial — ver getModulesView().
+  const modulesView = getModulesView({
+    modules: MODULES,
+    orgs: orgsStatus,
+    activeOrgId,
+    moduleKeys,
+    planLockedKeys: planLocked ? [...planLocked.keys()] : null,
+  })
+  const visibleModules = modulesView.status === 'ready' ? modulesView.modules : []
+  const lockedPlanFor = (mod: { id: string }) => planLocked?.get(HANDOFF_MODULE_KEY[mod.id]) ?? null
   // Aviso de almacenamiento desde el 80% (Planes Fase B). Informativo: el
   // bloqueo de subidas al 100% lo aplica la base, no esta pantalla.
   const storage = useStorageUsage(activeOrgId)
@@ -98,6 +105,7 @@ export default function Dashboard() {
 
         <nav style={styles.nav}>
           <p style={styles.navLabel}>{t('navLabel')}</p>
+          {modulesView.status === 'loading' && <p style={styles.navStatus}>{t('loading')}</p>}
           {visibleModules.map(mod => {
             const lockedPlan = lockedPlanFor(mod)
             const disabled = mod.status === 'soon' || lockedPlan !== null || launchingId !== null
@@ -221,10 +229,15 @@ export default function Dashboard() {
               error={launchError}
               moduleName={t(MODULES.find((m) => m.id === launchError.moduleId)?.labelKey ?? '')}
               onDismiss={dismissError}
+              onRetry={() => {
+                const mod = MODULES.find((m) => m.id === launchError.moduleId)
+                if (mod) void launch(mod)
+              }}
             />
           )}
           <ModuleGallery
             t={t}
+            status={modulesView.status}
             modules={visibleModules}
             lockedPlanFor={lockedPlanFor}
             launchingId={launchingId}
@@ -237,19 +250,32 @@ export default function Dashboard() {
   )
 }
 
-// Aviso cuando no se pudo entrar a un módulo (código de entrada rechazado o
-// con error). Se cierra a mano o con el próximo intento.
+// Aviso cuando no se pudo entrar a un módulo (código de entrada rechazado,
+// con error o que tardó demasiado). Se cierra a mano o con el próximo intento.
+// "Reintentar" solo si reintentar puede servir: no en 'denied'.
+const LAUNCH_MESSAGE: Record<LaunchError['kind'], string> = {
+  denied: 'moduleLaunchDenied',
+  error: 'moduleLaunchError',
+  timeout: 'moduleLaunchTimeout',
+}
+
 export function LaunchErrorNotice({
-  t, error, moduleName, onDismiss,
+  t, error, moduleName, onDismiss, onRetry,
 }: {
   t: (key: string, options?: Record<string, string>) => string
   error: LaunchError
   moduleName: string
   onDismiss: () => void
+  onRetry?: () => void
 }) {
   return (
     <div role="alert" style={{ ...styles.storageBanner, ...styles.storageBannerFull, ...styles.launchNotice }}>
-      <span>{t(error.kind === 'denied' ? 'moduleLaunchDenied' : 'moduleLaunchError', { module: moduleName })}</span>
+      <span>{t(LAUNCH_MESSAGE[error.kind], { module: moduleName })}</span>
+      {onRetry && error.kind !== 'denied' && (
+        <button type="button" onClick={onRetry} style={styles.launchNoticeRetry}>
+          {t('retry')}
+        </button>
+      )}
       <button type="button" onClick={onDismiss} aria-label={t('dismissNotice')} style={styles.launchNoticeClose}>
         ×
       </button>
@@ -258,9 +284,10 @@ export function LaunchErrorNotice({
 }
 
 function ModuleGallery({
-  t, modules, lockedPlanFor, launchingId, onLaunch,
+  t, status, modules, lockedPlanFor, launchingId, onLaunch,
 }: {
   t: (key: string, options?: Record<string, string>) => string
+  status: 'loading' | 'error' | 'ready'
   modules: typeof MODULES
   lockedPlanFor: (mod: { id: string }) => string | null
   launchingId: string | null
@@ -270,6 +297,17 @@ function ModuleGallery({
     <div>
       <h2 style={styles.galleryTitle}>{t('galleryTitle')}</h2>
       <p style={styles.gallerySubtitle}>{t('gallerySubtitle')}</p>
+      {status === 'loading' && (
+        <p role="status" style={styles.galleryStatus}>{t('loading')}</p>
+      )}
+      {status === 'error' && (
+        <div role="alert" style={styles.galleryStatus}>
+          <p style={{ margin: '0 0 12px' }}>{t('modulesLoadError')}</p>
+          <button style={styles.moduleButton} onClick={() => window.location.reload()}>
+            {t('retry')}
+          </button>
+        </div>
+      )}
       <div style={styles.galleryGrid}>
         {modules.map(mod => {
           const lockedPlan = lockedPlanFor(mod)
@@ -352,6 +390,7 @@ const styles: Record<string, React.CSSProperties> = {
   orgSwitcherWrap: { padding: '12px 12px 0' },
 
   nav: { flex: 1, padding: '16px 12px', overflowY: 'auto' },
+  navStatus: { fontSize: 13, color: COLORS.grisTexto, margin: '0 8px' },
   navLabel: { fontSize: 10, color: COLORS.grisTexto, textTransform: 'uppercase', letterSpacing: 1.5, margin: '0 8px 8px', fontWeight: 600 },
   navItem: {
     display: 'flex',
@@ -446,6 +485,7 @@ const styles: Record<string, React.CSSProperties> = {
 
   // Module gallery (home screen)
   galleryTitle: { fontSize: 22, fontWeight: 700, color: COLORS.negro, margin: '0 0 4px' },
+  galleryStatus: { fontSize: 14, color: COLORS.grisTexto, margin: '16px 0' },
   gallerySubtitle: { fontSize: 16, color: COLORS.grisTexto, margin: '0 0 28px' },
   galleryGrid: {
     display: 'grid',
@@ -477,6 +517,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   moduleButtonBusy: { opacity: 0.6, cursor: 'default' },
   launchNotice: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  launchNoticeRetry: { marginLeft: 'auto', padding: '6px 12px', border: 'none', borderRadius: 6, background: COLORS.azul, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   launchNoticeClose: {
     background: 'none', border: 'none', fontSize: 20, lineHeight: 1, cursor: 'pointer', color: 'inherit', padding: 0,
   },

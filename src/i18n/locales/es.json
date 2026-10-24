@@ -34,6 +34,8 @@
   "gallerySubtitle": "Elige un módulo para empezar a trabajar.",
   "enterModule": "Entrar",
   "loading": "Cargando...",
+  "modulesLoadError": "No pudimos cargar tus módulos.",
+  "retry": "Reintentar",
   "logout": "Cerrar sesión",
   "moduleVentas": "Ventas",
   "moduleVentasDesc": "Gestiona clientes, cotizaciones y oportunidades de venta.",
@@ -66,6 +68,7 @@
   "trialBannerWithCard_other": "Tu prueba termina en {{count}} días ({{date}}). Después se cobra el plan con la tarjeta cargada.",
   "openingModule": "Abriendo…",
   "moduleLaunchError": "No se pudo entrar a {{module}}. Probá de nuevo en un momento.",
+  "moduleLaunchTimeout": "{{module}} está tardando en responder. Probá de nuevo.",
   "moduleLaunchDenied": "No tenés acceso a {{module}} en esta organización. Si lo necesitás, pedíselo a un administrador.",
   "dismissNotice": "Cerrar aviso"
 }
