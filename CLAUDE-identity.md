@@ -132,3 +132,19 @@ Bajar la demora de "Entrar" en `eventos-administracion-frontend` (requiere redep
   preflight extra).
 - `create-module-handoff-code`: hacer en paralelo la consulta de la org y `get_user_role_and_modules` (hoy son
   4 llamadas en serie).
+
+
+## Ajustes de la organización: un solo lugar (regla, 2026-10-29)
+
+**Ajustes nuevos de la org → `organizations.settings.<módulo>`; nunca tablas nuevas de ajustes.**
+- Los que usan varios módulos (moneda, monedas habilitadas, zona horaria, idioma, logo, firma, soporte) son columnas de
+  `public.organizations`.
+- Los de comportamiento de un solo módulo van en `organizations.settings.<grupo>.<clave>`, declarados en
+  `public.org_settings_schema()` (tipo, valor por defecto y módulo que los edita). Se leen con
+  `rpc('org_settings', { p_org_id })` (cada clave o su valor por defecto) y se escriben con
+  `rpc('set_org_settings', { p_org_id, p_group, p_values })`, que valida claves y tipos. Escribir `settings` directo está
+  bloqueado por un trigger. Para un ajuste nuevo: agregar la clave a `org_settings_schema()` con una migración.
+- Quién edita: las columnas, el logo y la firma, quien tiene el módulo Administración en Roles y permisos (Owner siempre,
+  Viewer nunca; `public.can_edit_org_module(org, 'administrativo')`); `settings.<grupo>`, quien tiene el módulo de ese
+  grupo. Aprobación, plan y cobro: solo superadmin. Todo en la base (RLS y funciones), no solo en pantalla.
+- Detalle: `eventos-administracion-frontend/supabase/migrations/20261029150000_org_settings_single_place_and_admin_edit.sql`.
