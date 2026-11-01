@@ -1,169 +1,27 @@
 # eventos-identity-frontend
 
+Login y panel de entrada de EventOS: el usuario inicia sesión acá, elige organización y entra a cada módulo con un
+código de un solo uso (handoff). Ningún módulo de staff tiene login propio.
 
-## Regla de commits y pruebas (2026-10-31)
+> **Reglas comunes de EventOS:** `eventos-reglas/REGLAS.md` (se cargan solas desde `~/Developer/CLAUDE.md`). Acá solo
+> lo propio de este repo y su estado actual. Bitácora (qué se hizo en cada sesión): `docs/SESSION_LOG.md` (hasta el
+> 2026-10-31 este archivo se llamaba `CLAUDE-identity.md` y tenía todo junto).
 
-Commits: cada sesión hace commit SOLO de los archivos que cambió ella (git add con rutas, nunca -A ni '.'). Si encuentra cambios ajenos sin commit, no los toca y avisa. Nunca cerrar sesión en el navegador durante pruebas; solo cerrar pestañas.
+## Stack
+- React 19 + Vite 8 + TypeScript + Supabase JS v2 (sin Tailwind). i18n ES/EN/PT (`src/i18n`).
+- Deploy: Vercel (eventos-identity-frontend.vercel.app), automático al hacer push. Rama principal: `master`.
 
-## Session Log
+## Reglas propias del repo
+- **Entrar a un módulo siempre con código de un solo uso** (`create-module-handoff-code`, Edge Function de
+  Administración, que vuelve a chequear el acceso). Nunca mandar a un módulo sin código ni seguir un `redirect` que no
+  esté en el catálogo (`lib/modules.ts`, por origen).
+- La ruta exacta dentro del módulo no viaja por Identity: la resuelve cada módulo (`returnPath.ts`).
 
-### Sesión 2026-06-17
-**Completado:**
-- Módulo Eventos agregado al dashboard (eventos-eventos-frontend.vercel.app)
-- passToken: true igual que Inventory para auth cross-domain
-
-**Próximo paso:**
-- Agregar módulo Eventos como opción en el sidebar del dashboard con ícono y descripción correctos
-
-### Sesión 2026-06-19
-**Completado:**
-- Módulo Ventas agregado al dashboard
-- Fix: link "← Volver al dashboard" movido a top-left
-
-**Próximo paso:**
-- Ajustar página de detalle del módulo Ventas en dashboard
-
-### Sesión 2026-07-06
-**Completado:**
-- Sidebar reordenado: Ventas, Eventos, Layouts, Inventario, FieldOps — CRM eliminado, "Inventory" renombrado a "Inventario"
-- Paleta de colores real de la landing de Reality Near aplicada al dashboard (azul #1D4ED8, negro #0A0F1E, gris #F8FAFE, etc.), fuente Inter, tipografía más grande
-- Nueva pantalla de inicio tipo galería: muestra todos los módulos con ícono, nombre, descripción y botón "Entrar" (segunda forma de navegar, además del sidebar)
-- Toggle de idioma ES/EN en el header del dashboard (`src/context/LangContext.tsx`), replicando el patrón de `rn-layout-engine`; default español, persiste en localStorage
-- Módulos "Próximamente" agregados (status: 'soon', sin URL): Financiero, Administrativo, Agentes AI — badge "Próximamente" en sidebar y galería en vez de botón activo
-- Todo verificado visualmente (Playwright headless) y confirmado en el bundle desplegado en producción
-- Módulo "Portal Cliente" agregado al final de la galería/sidebar como "Próximamente" (activado luego en sesión 2026-07-14, ver abajo)
-- Fix bug mobile: sidebar de MÓDULOS ya no queda fijo ocupando ~55% del ancho en viewports angostos. Ahora colapsa a menú hamburguesa (☰) oculto por defecto por debajo de 767px, con overlay + backdrop tap-to-dismiss, replicando el patrón ya validado en `rn-layout-engine` (clases `.eos-sidebar` / `.eos-hamburger-btn` / `.eos-backdrop` en `src/index.css`). Verificado con Playwright en viewport iPhone 14 (390×844): sin overflow horizontal, sin regresión en desktop
-
-**Próximo paso:**
-- Extender el catálogo de i18n al resto del dashboard (Login, Callback) si se necesita
-- Definir arquitectura de Agentes AI — por ahora es solo visión de roadmap, sin implementación funcional
-- Validar el fix de sidebar mobile en un iPhone real (pendiente, solo se probó en headless/devtools)
-
-### Sesión 2026-07-14
-**Completado:**
-- Módulo "Portal Cliente" activado: status 'soon' → 'active', url `https://eventos-portal-cliente-frontend.vercel.app`, mismo patrón que Ventas/Eventos/Layouts/Inventario/FieldOps
-- Se descarta la hipótesis previa de auth especial (magic link): el staff inicia sesión con Google directamente en Portal Cliente, sin passToken ni sesión compartida
-- Se removió el comentario de advertencia "NO IMPLEMENTAR" dejado en `Dashboard.tsx` (sesión 07-06), ya resuelto
-
-**Próximo paso:**
-- Ninguno pendiente sobre Portal Cliente por ahora
-
-### Sesión 2026-07-15
-**Completado:**
-- Módulo "Administrativo" activado: status 'soon' → 'active', url `https://eventos-administracion-frontend.vercel.app`, mismo patrón que Portal Cliente (sin passToken)
-- Ícono, título y descripción sin cambios
-
-**Próximo paso:**
-- Quedan "Próximamente" solo Financiero y Agentes AI
-
-### Sesión 2026-07-27
-**Completado:**
-- Auditoría de multi-tenancy: confirmado que Identity no expone status de organización ni pertenencia — no hay tabla `organizations`/`organization_members` consultada acá, no hay backend/API propio, solo wrapper de Google OAuth + passToken del JWT crudo a los módulos
-- Confirmado que el dato (`organizations.approval_status`: pending/active/rejected/suspended, `organization_members.is_active`) vive en el Supabase compartido, con schema dueño en `eventos-administracion-frontend` (`supabase/migrations/`, `create-organization` Edge Function)
-- Confirmado que los 9 módulos NO consumen nada de Identity para esto: cada uno (FieldOps, Ventas, Eventos, Inventario ×2, Layouts, Portal Cliente) implementa su propia query directa a `organization_members.is_active`, sin chequear `approval_status`. Administración y Financiero sí chequean `approval_status` con lógica duplicada entre sí, pero el guard no cubre todas las rutas (ni bloquea uso real)
-- Corrección durante esta misma sesión: al hacer `git fetch` antes del push apareció el commit `0814f92` ("Mark CTO", 2026-07-23) que activó Agentes AI (`status: soon → active`, url `eventos-agentes-frontend.vercel.app`, `passToken: true`) — no estaba en el local al momento de auditar. Esto invalida la conclusión de que "Agentes AI no existe todavía": el módulo está deployado y accesible, pero no hay clon local de `eventos-agentes-frontend` para confirmar si tiene o no su propio chequeo de `approval_status`. Queda pendiente auditarlo.
-- No se modificó código funcional: se decidió no implementar el fix todavía (ver "Próximo paso")
-
-**Próximo paso:**
-- Auditar `eventos-agentes-frontend` (clonar/revisar repo) para confirmar si chequea `organization_members`/`approval_status` o deja pasar sin ningún gate, igual que se hizo con los otros 9
-- Decidir estrategia para exponer el status de forma centralizada: (a) gate local en Identity antes de entrar a cada módulo, o (b) JWT custom claim vía Supabase Auth Hook (requiere acceso al dashboard/CLI del proyecto Supabase, no linkeado desde ningún repo local)
-- Sea cual sea la estrategia, hay que corregir módulo por módulo igual: no hay forma de que un fix en Identity propague solo
-
-### Sesión 2026-08-13
-**Completado:**
-- Reemplazado el toggle ES/EN casero (`src/context/LangContext.tsx`, Context propio + `localStorage`) por `react-i18next`, con 3er idioma (PT). Módulo piloto: este patrón se replica después al resto de las 9 apps
-- Resolución de idioma en cascada: `organization_members.locale` (personal) → `organizations.locale` (default de la org) → detección de navegador → `es`. Auto-detección trata ES/EN/PT por igual, nunca pisa una preferencia ya guardada
-- Nueva migración `organization_members.locale` (nullable, `text`, check `es|en|pt`) en `eventos-administracion-frontend` (repo dueño del schema, no en Identity) — aplicada contra la base compartida con `supabase db query --linked` en vez de `db push`, porque `db push` está bloqueado por un desfasaje preexistente: 8 migraciones remotas sin archivo local en ese repo (`20260727190000`, `20260727203104`, `20260727210552`, `20260727211613`, `20260802195351`, `20260808042603`, `20260808051500`, `20260809222500`). No se investigó ni se tocó — queda pendiente
-- Toggle pasa de 2 opciones (ES/EN) a 3 (segmented control ES/EN/PT) en `Dashboard.tsx`, escribe a `organization_members.locale` vía Supabase, no a `localStorage`
-- Cobertura completa sin excepciones: `Login.tsx` y `Callback.tsx` (0% cubiertos antes) migrados a `useTranslation()`, incluido el bug de "Sign in with Google" hardcodeado en inglés dentro de una UI en español. En `Dashboard.tsx` se cubrieron los 3 strings sueltos que quedaban fuera del mecanismo (fallback de nombre de usuario, `aria-label` del hamburger, tooltip del toggle)
-- **Bug real encontrado y corregido antes de pushear**: la primera versión de `resolveLocale.ts` usaba `.maybeSingle()` sobre `organization_members` filtrado solo por `user_id`. Revisando el historial de `eventos-administracion-frontend` apareció el commit `c4b58da` (2026-08-04): un usuario puede tener legítimamente 2+ filas activas en `organization_members` (ej. alguien ayudando a revisar una org nueva sin dejar la real) — `.maybeSingle()` con 2+ filas devuelve `PGRST116`, el mismo bug ya roto en producción en otro repo (`useOrgStatus` → reemplazado por `OrgContext`). Se corrigió a una query con `.eq('is_active', true).order('joined_at').limit(1)`, sin `.single()`/`.maybeSingle()`. Verificado insertando una segunda organización + membresía de prueba real contra la base compartida, confirmando que no rompe y resuelve determinísticamente a la más antigua; datos de prueba borrados y limpieza confirmada con `select count(*)` en 0
-- Pase de responsive en las 3 pantallas: clases nuevas en `src/index.css` (`.eos-auth-container`, `.eos-auth-card`, `.eos-topbar`, `.eos-content`, `.eos-chip-name`), mismo patrón `!important`-sobre-inline ya usado para `.eos-sidebar`. Fix de zoom automático de iOS Safari en inputs de Login (font-size 14px → 16px). Hit-areas táctiles ampliadas en botones del header
-- Verificado en vivo contra la base compartida (no solo local): los 3 casos de resolución con datos reales de la cuenta del usuario, el toggle escribiendo a la DB, cero `eventos-lang` en `localStorage`
-- Responsive verificado sin scroll horizontal a 768px y 1440px reales, y a 500px (piso real de la herramienta de automatización de browser en este entorno — no se logró bajar a 375px exactos, así que el breakpoint de 480px que se agregó —ocultar nombre de usuario en el header, reducir padding de la card de login— no se pudo verificar visualmente, solo por código)
-- `.env.local` creado localmente (gitignored) copiando `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` de `eventos-eventos-frontend` (mismo proyecto Supabase compartido) — seguía sin existir en este repo
-- Commits: `eventos-identity-frontend` `c0259d6` (migración a i18next) + `90312b5` (fix multi-org), `eventos-administracion-frontend` `aac409a` (migración SQL). Deploy verificado con evidencia real: estado del commit en Vercel vía `gh api` (`state: success`) y contenido del bundle de producción (`curl` confirmando strings en portugués y el código del fix `is_active`/`joined_at` realmente desplegados, no una versión cacheada)
-
-**Próximo paso:**
-- Investigar las 8 migraciones remotas sin archivo local en `eventos-administracion-frontend` (ver arriba) — no se sabe si son ruido (aplicadas desde el dashboard/otra máquina) o schema real desconocido
-- Cuando se replique este patrón de i18n al resto de los módulos, reusar el mismo mecanismo de resolución (`organization_members.locale` → `organizations.locale` → navegador) en vez de reinventarlo por app
-- Verificar el breakpoint de 480px (`.eos-chip-name`, `.eos-auth-card` compacto) en un teléfono real o el device toolbar de Chrome DevTools — no se pudo emular un viewport tan angosto con la herramienta de automatización disponible en este entorno
-
-## Entrar a un módulo: ya no falla en silencio (2026-10-02)
-
-`launchModule()` en `src/pages/Dashboard.tsx` llamaba a `goToModule()` y descartaba el resultado: si
-`create-module-handoff-code` fallaba ('error') o rechazaba ('denied'), el usuario tocaba "Entrar" y no
-pasaba nada. Ahora `src/hooks/useModuleLauncher.ts`:
-- mientras se pide el código, el botón del módulo muestra "Abriendo…" y todos los botones de módulo
-  quedan deshabilitados (no se puede disparar dos veces);
-- si falla (o `goToModule` lanza), los botones vuelven a la normalidad y aparece un aviso arriba de los
-  módulos (`LaunchErrorNotice`, `role="alert"`, ES/EN/PT): "No se pudo entrar a {módulo}. Probá de
-  nuevo…" o, si fue 'denied', "No tenés acceso a {módulo} en esta organización…". Se cierra con × o con
-  el próximo intento;
-- si navega, queda en "Abriendo…" hasta que la página se va; si el usuario vuelve con "Atrás" y el
-  navegador restaura la página de su caché (`pageshow` con `persisted`), se resetea;
-- sin org activa, navega directo como antes (Administración resuelve el alta).
-Tests: `src/hooks/useModuleLauncher.test.ts`, `src/pages/LaunchErrorNotice.test.tsx`.
-
-## Login con sesión abierta: directo al destino (2026-10-12)
-
-Antes el login mostraba siempre el botón de Google, aunque ya hubiera sesión. Ahora `Login.tsx` valida la sesión
-guardada contra el servidor (`getUser`) y, si sirve, no muestra el botón:
-- `?redirect=` de un módulo del catálogo (`lib/modules.ts`, por origen) → entra con el código de un solo uso
-  (`requestHandoffCode`, el mismo camino del Dashboard, que vuelve a chequear el acceso al módulo) para la org
-  activa; se conserva el query del redirect.
-- sin redirect, redirect desconocido, sin acceso, sin org o con error → `/dashboard`. Nunca al módulo sin código.
-- sesión guardada que el servidor ya no acepta (p.ej. cierre de sesión global desde un módulo) → se borra de este
-  navegador y se muestra el login.
-- corte de ida y vuelta: a la tercera entrada automática en un minuto, `/dashboard`.
-
-El login por password usa el mismo camino (antes iba al módulo sin sesión y seguía cualquier `redirect`).
-Lógica en `lib/sessionRedirect.ts`; org activa en `lib/activeOrg.ts` (la usa también `useActiveOrg`).
-La vuelta a la página exacta la resuelve cada módulo (`returnPath.ts` en Eventos, Ventas e Inventarios): la ruta
-no viaja por Identity. Tests: `sessionRedirect.test.ts`, `Login.test.tsx`. No se probó en navegador.
-
-## Dashboard: carga completa antes de dibujar; "Entrar" con límite de 8 s (2026-10-24)
-
-- Tras el login, el panel a veces mostraba solo Administración hasta recargar: con las organizaciones todavía
-  cargando (o con error en la consulta, que se tomaba como "sin organizaciones") `activeOrgId` era `null` y se
-  mostraba la vista de usuario nuevo. Ahora `getModulesView()` (`lib/visibleModules.ts`) da 'loading' hasta
-  tener organizaciones, permisos y bloqueos por plan, y 'error' (con Reintentar) si falla la consulta.
-- `useModuleLauncher`: bloqueo contra doble toque con un ref (no dependía del re-render); si el código no llega
-  en 8 s (`LAUNCH_TIMEOUT_MS`) se corta el pedido, no se navega aunque llegue tarde, y queda el aviso con
-  Reintentar (también en 'error'; no en 'denied').
-
-### Pendiente (acordado para 2026-10-25, no tocar antes)
-Bajar la demora de "Entrar" en `eventos-administracion-frontend` (requiere redeploy de la edge function):
-- `supabase/functions/_shared/cors.ts`: agregar `Access-Control-Max-Age: 86400` (hoy cada entrada paga un
-  preflight extra).
-- `create-module-handoff-code`: hacer en paralelo la consulta de la org y `get_user_role_and_modules` (hoy son
-  4 llamadas en serie).
-
-
-## Ajustes de la organización: un solo lugar (regla, 2026-10-29)
-
-**Ajustes nuevos de la org → `organizations.settings.<módulo>`; nunca tablas nuevas de ajustes.**
-- Los que usan varios módulos (moneda, monedas habilitadas, zona horaria, idioma, logo, firma, soporte) son columnas de
-  `public.organizations`.
-- Los de comportamiento de un solo módulo van en `organizations.settings.<grupo>.<clave>`, declarados en
-  `public.org_settings_schema()` (tipo, valor por defecto y módulo que los edita). Se leen con
-  `rpc('org_settings', { p_org_id })` (cada clave o su valor por defecto) y se escriben con
-  `rpc('set_org_settings', { p_org_id, p_group, p_values })`, que valida claves y tipos. Escribir `settings` directo está
-  bloqueado por un trigger. Para un ajuste nuevo: agregar la clave a `org_settings_schema()` con una migración.
-- Quién edita: las columnas, el logo y la firma, quien tiene el módulo Administración en Roles y permisos (Owner siempre,
-  Viewer nunca; `public.can_edit_org_module(org, 'administrativo')`); `settings.<grupo>`, quien tiene el módulo de ese
-  grupo. Aprobación, plan y cobro: solo superadmin. Todo en la base (RLS y funciones), no solo en pantalla.
-- Detalle: `eventos-administracion-frontend/supabase/migrations/20261029150000_org_settings_single_place_and_admin_edit.sql`.
-
-
-## Antes de hacer push de código que depende de una migración (regla fija, 2026-10-29)
-
-1. Confirmar que estás en la carpeta de este repo y que el proyecto Supabase enlazado es **rn-layout-engine-v2**
-   (ref `zwrekwltmipmdbautnwd`): `cat supabase/.temp/project-ref` o `supabase projects list` (el enlazado lleva ●).
-   Si el repo no está enlazado, enlazarlo (`supabase link --project-ref zwrekwltmipmdbautnwd`) antes de seguir.
-2. Aplicar la migración y verificar que quedó aplicada: `supabase migration list` si se aplicó con `db push`; si se
-   aplicó con `supabase db query --linked -f <archivo>` (no pasa por el registro de migraciones), con una consulta
-   directa de lo que crea (función en `pg_proc`, política en `pg_policies`, columna en `information_schema`, datos).
-3. Recién después, push del código.
-
-Si el paso 2 falla, no hacer push: avisar a Javier. Motivo: el 2026-10-29 salió código antes que su migración (el
-comando se corrió desde una carpeta sin proyecto enlazado y no aplicó nada; ~2 minutos con funciones faltantes).
+## Estado actual (2026-10-31)
+- Login (Google y password) que valida la sesión guardada contra el servidor y, si sirve, va directo al destino
+  (`lib/sessionRedirect.ts`), con corte de ida y vuelta.
+- Panel con los módulos visibles según organización, permisos y plan (`lib/visibleModules.ts`), que no se dibuja hasta
+  tener todo; "Entrar" con aviso de error y límite de 8 s (`useModuleLauncher`).
+- Pendiente (acordado el 2026-10-24, sin hacer al 2026-10-31): bajar la demora de "Entrar" en Administración
+  (`Access-Control-Max-Age: 86400` en `supabase/functions/_shared/cors.ts` y consultas en paralelo en
+  `create-module-handoff-code`; requiere desplegar esa Edge Function).
